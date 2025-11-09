@@ -49,7 +49,7 @@ works directly in browsers, obs, or ffmpeg.
 
 ### download
 
-👉 [**download remotecamenhanced.apk**](https://github.com/alan7383/remotecamenhanced/releases)
+👉 [**download remotecam-enhanced.apk**](https://github.com/alan7383/RemoteCam-Enhanced/releases)
 
 not on play store
 
