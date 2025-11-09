@@ -1,30 +1,90 @@
-# RemoteCam
-Your android camera streamed on your desktop: use as a source for OBS, or as a webcam with v4l2.
-Free✅, No Ads✅, Open Source✅
-# How it works
-The app allows a user to choose a sensor and a resolution. From there it captures every frame as JPEG and push them to a connected http client as a MJPEG stream.
+<h1 align="center">📸 RemoteCamEnhanced ^^</h1>
 
-![app screenshot](assets/screen.jpg)
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/remotecamenhanced-banner.png" alt="banner" width="850">
+</p>
 
-# Download
-[RemoteCam.apk](https://github.com/Ruddle/RemoteCam/releases/tag/0.04)
+---
 
-It is not available on the Play Store. Please do not upload it there.
+### what is this
 
-# Use cases
-You can use that stream in **OBS** with the *Media Source* or the *Browser* (lower latency) source: (change ip to your phone's)
+RemoteCamEnhanced is a fork of [Ruddle’s RemoteCam](https://github.com/Ruddle/RemoteCam).  
+same idea: stream your android camera to your pc, but with a new look and more features.
 
-![example](assets/obs_mediasource.png)
+made with **Material 3 expressive / Monet**, new camera stuff, and some droidcam-like features,  
+but still **free**, **no ads**, and **open source** :3
 
-Or you can pipe the stream into a virtual webcam compatible with most apps. On linux you would use **v4l2** and **ffmpeg**.
-see bash script **remoteCamClient** for an example of how to set that up.
+---
 
-# Client
-No official client yet, you have to DIY your way with the provided http MJPEG stream for now.
-Let me know your interest for a turnkey virtual webcam or OBS plugin.
+### what’s new
 
-# Why
-There is already an alternative, Droidcam, but it is not free for HD resolution 720p+.
-Also Droidcam cannot use the telephoto lens on Samsung devices.
+- material you ui (dynamic colors, smooth animations)
+- support for multiple lenses (wide / telephoto / ultra-wide)
+- audio streaming 🎤
+- better connection handling (auto reconnect, discovery)
+- obs + v4l2 compatible
+- cleaner codebase and faster streaming
+- still light and simple to use ^^
 
-RemoteCam is an opensource alternative to Droidcam (but with <10% of its functionalities). 
+---
+
+### how it works
+
+you pick a sensor and resolution → app captures jpeg frames →  
+they’re sent over http as an mjpeg stream to your computer.
+
+open this on your pc:
+
+```
+
+http://<your-phone-ip>:8080/cam.mjpeg
+
+````
+
+works directly in browsers, obs, or ffmpeg.
+
+![screenshot](assets/screen_remotecam.jpg)
+
+---
+
+### download
+
+👉 [**download remotecamenhanced.apk**](https://github.com/alan7383/remotecamenhanced/releases)
+
+not on play store
+
+---
+
+### use cases
+
+**in obs:**  
+add a browser or media source →  
+paste your stream url (like `http://192.168.x.x:8080/mjpeg`)  
+browser source gives lower latency.
+
+**linux (v4l2):**
+```bash
+ffmpeg -i http://192.168.x.x:8080/mjpeg -f v4l2 /dev/video0
+````
+
+---
+
+### why
+
+droidcam is fine, but hd and multi-lens are locked behind paywalls.
+remotecam was open but pretty basic.
+so remotecamenhanced is a modern, open version with a clean ui,
+better camera control, and material you all the way :)
+
+---
+
+### license
+
+based on [RemoteCam](https://github.com/Ruddle/RemoteCam) (MIT)
+this fork is also under the **MIT license**
+
+---
+
+<p align="center">
+  made with ☕ and a bit of chaos by <a href="https://github.com/alan7383">alan7383</a> (´･ω･`)
+</p>
