@@ -73,7 +73,7 @@ droidcam is good, but most features are behind a paywall.
 remotecamenhanced aims to be a **true open-source replacement**,
 with hd video, obs/v4l2 support, clean material design, and no bs :)
 
-no ads, no trackers, no locked options — just your camera doing its thing ^^
+no ads, no trackers, no locked options, just your camera doing its thing ^^
 
 ---
 
