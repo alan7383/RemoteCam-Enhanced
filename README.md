@@ -19,9 +19,9 @@ but still **free**, **no ads**, and **open source** :3
 ### what’s new
 
 - material you ui (dynamic colors, smooth animations)
-- support for multiple lenses (wide / telephoto / ultra-wide)
-- audio streaming 🎤
-- better connection handling (auto reconnect, discovery)
+- support for multiple lenses (wide / telephoto / ultra-wide) (Not yet)
+- audio streaming 🎤 (Not yet)
+- better connection handling (auto reconnect, discovery) (Not yet)
 - obs + v4l2 compatible
 - cleaner codebase and faster streaming
 - still light and simple to use ^^
