@@ -69,7 +69,7 @@ ffmpeg -i http://192.168.x.x:8080/mjpeg -f v4l2 /dev/video0
 
 ### why
 
-droidcam is good — but most features are behind a paywall.
+droidcam is good, but most features are behind a paywall.
 remotecamenhanced aims to be a **true open-source replacement**,
 with hd video, obs/v4l2 support, clean material design, and no bs :)
 
