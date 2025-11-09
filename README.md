@@ -47,7 +47,7 @@ works directly in browsers, OBS, or ffmpeg.
 
 👉 [**download remotecam-enhanced.apk**](https://github.com/alan7383/RemoteCam-Enhanced/releases)
 
-not on play store (and please don’t upload it there ^^)
+not on play store
 
 ---
 
