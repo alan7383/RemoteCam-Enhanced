@@ -1,11 +1,5 @@
 <h1 align="center">📸 RemoteCamEnhanced ^^</h1>
 
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/remotecamenhanced-banner.png" alt="banner" width="850">
-</p>
-
----
-
 ### what is this
 
 RemoteCamEnhanced is a fork of [Ruddle’s RemoteCam](https://github.com/Ruddle/RemoteCam).  
