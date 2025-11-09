@@ -43,8 +43,9 @@ http://<your-phone-ip>:8080/cam.mjpeg
 
 works directly in browsers, obs, or ffmpeg.
 
-![screenshot](assets/screen_remotecam.jpg)
+<img src="assets/screen_remotecam.jpg" width="400">
 
+![screenshot](assets/obs_mediasource.png)
 ---
 
 ### download
