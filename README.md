@@ -45,7 +45,6 @@ works directly in browsers, obs, or ffmpeg.
 
 <img src="assets/screen_remotecam.jpg" width="400">
 
-![screenshot](assets/obs_mediasource.png)
 ---
 
 ### download
@@ -62,6 +61,8 @@ not on play store
 add a browser or media source →  
 paste your stream url (like `http://192.168.x.x:8080/mjpeg`)  
 browser source gives lower latency.
+
+![screenshot](assets/obs_mediasource.png)
 
 **linux (v4l2):**
 ```bash
