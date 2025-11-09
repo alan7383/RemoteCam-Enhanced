@@ -88,4 +88,3 @@ this fork is also under the **MIT license**
   made with ☕ and a bit of chaos by <a href="https://github.com/alan7383">alan7383</a> (´･ω･`)
 </p>
 
-tu veux que je t’en fasse une **version française dans le même ton “cool dev”** aussi ?
