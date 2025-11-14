@@ -1,0 +1,133 @@
+<resources>
+    <!-- Notifications -->
+    <string name="app_name">RemoteCam</string>
+    <string name="notif_title">RemoteCam (actif)</string>
+    <string name="notif_text">Appuyer pour ouvrir</string>
+    <string name="notif_kill">Arrêter</string>
+
+    <!-- Écran des permissions -->
+    <string name="perm_welcome">Bienvenue sur RemoteCam</string>
+    <string name="perm_desc">Pour fonctionner, l\'application a besoin d\'accéder à votre caméra et d\'afficher des notifications.</string>
+    <string name="perm_cam_reason">Pour capturer et diffuser la vidéo.</string>
+    <string name="perm_notif_reason">Pour maintenir le service actif en arrière-plan.</string>
+    <string name="perm_button">Accorder les autorisations</string>
+    <string name="perm_toast_denied">Toutes les autorisations sont requises pour utiliser l\'application.</string>
+    <string name="perm_welcome_title">Autorisation requise</string>
+    <string name="perm_reasons_title">Pourquoi ces autorisations ?</string>
+
+    <!-- Écran Caméra -->
+    <string name="cam_settings">Paramètres</string>
+    <string name="cam_stop">STOP</string>
+    <string name="cam_controls">Contrôles</string>
+    <string name="cam_local_preview">Aperçu local</string>
+    <string name="cam_mjpeg_stream">Flux MJPEG</string>
+    <string name="cam_flash">Lampe torche</string>
+    <string name="cam_information">Informations</string>
+    <string name="cam_parameters">Paramètres</string>
+    <string name="cam_sensor">Capteur</string>
+    <string name="cam_resolution">Résolution</string>
+    <string name="cam_quality">Qualité JPEG</string>
+    <string name="cam_clipboard_copied">Copié dans le presse-papiers</string>
+
+    <!-- Écran Paramètres: Général -->
+    <string name="settings_title">Paramètres</string>
+    <string name="settings_back">Retour</string>
+    <string name="settings_appearance">Apparence</string>
+    <string name="settings_theme">Thème</string>
+    <string name="settings_theme_auto">Automatique (Système)</string>
+    <string name="settings_theme_light">Clair</string>
+    <string name="settings_theme_dark">Sombre</string>
+    <string name="settings_monet">Couleur dynamique (Monet)</string>
+    <string name="settings_behavior_title">Comportement</string>
+    <string name="settings_keep_screen_on">Garder l\'écran allumé</string>
+    <string name="settings_language">Langue</string>
+    <string name="settings_lang_auto">Automatique (Système)</string>
+    <string name="settings_lang_en">English (Anglais)</string>
+    <string name="settings_lang_fr">Français</string>
+    <string name="settings_lang_hu">Magyar (Hongrois)</string>
+    <string name="settings_additional_title">Paramètres supplémentaires</string>
+    <string name="settings_app_title">Application</string>
+    <string name="settings_about_app">Application</string>
+    <string name="settings_about_title">À propos de RemoteCam</string>
+    <string name="settings_close">Fermer</string>
+    <string name="settings_save">Enregistrer</string>
+
+    <!-- Écran Paramètres: Caméra -->
+    <string name="settings_camera_title">Caméra</string>
+    <string name="settings_remember_title">Mémoriser les paramètres</string>
+    <string name="settings_remember_desc">Applique les paramètres enregistrés au démarrage</string>
+    <string name="settings_remember_dialog_title">Mémoriser...</string>
+    <string name="settings_remember_flash">État de la lampe torche</string>
+    <string name="settings_remember_zoom">Niveau de zoom</string>
+    <string name="settings_remember_sensor">Capteur de la caméra</string>
+    <string name="settings_remember_resolution">Résolution</string>
+    <string name="settings_remember_quality">Qualité JPEG</string>
+    <string name="settings_fps_title">IPS Cible</string>
+    <string name="settings_stabilization_title">Désactiver la stabilisation (OIS/EIS)</string>
+    <string name="settings_stabilization_desc">Améliore la latence sur trépied</string>
+    <string name="settings_flicker_title">Anti-scintillement</string>
+    <string name="settings_flicker_auto">Auto</string>
+    <string name="settings_flicker_off">Désactivé</string>
+    <string name="settings_flicker_50hz">50Hz (Europe, Asie)</string>
+    <string name="settings_flicker_60hz">60Hz (Amérique du Nord)</string>
+    <string name="settings_noise_reduction_title">Réduction du bruit</string>
+    <string name="settings_noise_reduction_auto">Auto</string>
+    <string name="settings_noise_reduction_off">Désactivé</string>
+    <string name="settings_noise_reduction_low">Faible (Rapide)</string>
+    <string name="settings_noise_reduction_high">Élevée (Haute Qualité)</string>
+
+    <!-- Écran Paramètres: Contrôles -->
+    <string name="settings_controls_title">Contrôles</string>
+    <string name="settings_double_tap_title">Action du double-appui</string>
+    <string name="settings_double_tap_off">Désactivé</string>
+    <string name="settings_double_tap_switch_cam">Changer de caméra</string>
+    <string name="settings_double_tap_toggle_zoom">Activer/désactiver le zoom x2</string>
+    <string name="settings_volume_action_title">Action des touches de volume</string>
+    <string name="settings_volume_action_off">Ne rien faire</string>
+    <string name="settings_volume_action_zoom">Contrôler le zoom</string>
+    <string name="settings_volume_action_switch_cam">Changer de caméra</string>
+    <string name="settings_volume_action_toggle_flash">Activer/désactiver la lampe torche</string>
+
+    <!-- "À propos" et Easter Egg -->
+    <string name="about_fork">Cette application est un fork amélioré, maintenu par @alananassss.</string>
+    <string name="about_star">Star le repo sur GitHub</string>
+    <string name="about_telegram">N\'hésitez pas à me contacter sur Telegram pour toute suggestion : @alananassss</string>
+    <string name="about_version">Version %s</string>
+    <string name="egg_title_alan">Une petite note du dev :p</string>
+    <string name="egg_message_alan">Salut ! C\'est Alan ^^\n\nC\'est drôle que tu aies cliqué 7 fois ici !\n\nJe voulais juste te dire merci. Cette app est un \'fork\', ce qui veut dire que j\'ai repris la super base du développeur original et que j\'y ai passé un temps fou (des jours et des jours, soirs et week-ends...) pour l\'améliorer à ma façon.\n\nJ\'espère vraiment qu\'elle te sert !\n\nMerci de l\'utiliser !\n- Alan</string>
+    <string name="egg_button_alan">Cool ! Salutations !</string>
+
+    <string name="settings_power_title">Énergie et Écran</string>
+    <string name="settings_power_ignore_optimizations">Ignorer les optimisations batterie</string>
+    <string name="settings_power_ignore_optimizations_desc">Contourne les restrictions d\'énergie (ouvre les paramètres)</string>
+    <string name="settings_power_auto_dim">Assombrir l\'écran auto.</string>
+    <string name="settings_power_auto_dim_dialog_title">Assombrir l\'écran après...</string>
+    <string name="settings_power_auto_dim_off">Désactivé</string>
+    <string name="settings_power_auto_dim_45s">45 secondes</string>
+    <string name="settings_power_auto_dim_1m">1 minute</string>
+    <string name="settings_power_auto_dim_90s">90 secondes</string>
+    <string name="settings_power_auto_dim_2m">2 minutes</string>
+    <string name="settings_power_auto_dim_3m">3 minutes</string>
+    <string name="settings_power_auto_dim_5m">5 minutes</string>
+    <string name="settings_power_lock_input">Verrouiller au lieu d\'assombrir</string>
+    <string name="settings_power_lock_input_desc">Empêche les appuis accidentels</string>
+    <string name="settings_power_background_streaming">Streaming en arrière-plan</string>
+    <string name="settings_power_background_streaming_desc">Garde le service actif lorsque l\'app est en fond</string>
+    <string name="settings_power_allow_reconnects">Autoriser les reconnexions</string>
+    <string name="settings_power_allow_reconnects_desc">Permet aux clients de se reconnecter au flux</string>
+    <string name="cam_overlay_locked">Écran assombri et verrouillé. Appuyez pour déverrouiller.</string>
+
+    <string name="settings_remote_control_title">Contrôle à distance</string>
+    <string name="settings_zoom_smoothing_title">Lissage du zoom</string>
+    <string name="settings_zoom_smoothing_desc">Adoucit les changements de zoom des touches de volume et double-appui</string>
+    <string name="settings_zoom_smoothing_dialog_title">Délai de lissage</string>
+    <string name="settings_zoom_smoothing_none">Aucun (Instantané)</string>
+
+    <string name="settings_network_title">Réseau</string>
+    <string name="settings_port_title">Port HTTP</string>
+    <string name="settings_port_summary">Port utilisé par le flux MJPEG.</string>
+    <string name="settings_port_dialog_title">Définir le Port HTTP</string>
+    <string name="settings_port_dialog_label">Port (1025-65535)</string>
+    <string name="settings_port_dialog_invalid">Port invalide. Doit être entre 1025 et 65535.</string>
+
+</resources>
