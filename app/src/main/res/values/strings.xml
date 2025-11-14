@@ -1,19 +1,133 @@
-<?xml version="1.0" encoding="utf-8"?><!--
- Copyright 2015 The Android Open Source Project
-
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License.
--->
 <resources>
+    <!-- Notifications -->
     <string name="app_name">RemoteCam</string>
-    <string name="capture">Capture</string>
+    <string name="notif_title">RemoteCam (active)</string>
+    <string name="notif_text">Tap to open</string>
+    <string name="notif_kill">Kill</string>
+
+    <!-- Permissions Screen -->
+    <string name="perm_welcome">Welcome to RemoteCam</string>
+    <string name="perm_desc">To work, the app needs access to your camera and to show notifications.</string>
+    <string name="perm_cam_reason">To capture and stream video.</string>
+    <string name="perm_notif_reason">To keep the service active in the background.</string>
+    <string name="perm_button">Grant permissions</string>
+    <string name="perm_toast_denied">All permissions are required to use the application.</string>
+    <string name="perm_welcome_title">Authorization Required</string>
+    <string name="perm_reasons_title">Why these permissions?</string>
+
+    <!-- Camera Screen -->
+    <string name="cam_settings">Settings</string>
+    <string name="cam_stop">STOP</string>
+    <string name="cam_controls">Controls</string>
+    <string name="cam_local_preview">Local preview</string>
+    <string name="cam_mjpeg_stream">MJPEG Stream</string>
+    <string name="cam_flash">Flashlight</string>
+    <string name="cam_information">Information</string>
+    <string name="cam_parameters">Parameters</string>
+    <string name="cam_sensor">Sensor</string>
+    <string name="cam_resolution">Resolution</string>
+    <string name="cam_quality">JPEG Quality</string>
+    <string name="cam_clipboard_copied">Copied to clipboard</string>
+
+    <!-- Settings Screen: General -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_back">Back</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_auto">Automatic (System)</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_monet">Dynamic Color (Monet)</string>
+    <string name="settings_behavior_title">Behavior</string>
+    <string name="settings_keep_screen_on">Keep screen on</string>
+    <string name="settings_language">Language</string>
+    <string name="settings_lang_auto">Automatic (System)</string>
+    <string name="settings_lang_en">English</string>
+    <string name="settings_lang_fr">Français (French)</string>
+    <string name="settings_lang_hu">Magyar (Hungarian)</string>
+    <string name="settings_additional_title">Additional Settings</string>
+    <string name="settings_app_title">Application</string>
+    <string name="settings_about_app">Application</string>
+    <string name="settings_about_title">About RemoteCam</string>
+    <string name="settings_close">Close</string>
+    <string name="settings_save">Save</string>
+
+    <!-- Settings Screen: Camera -->
+    <string name="settings_camera_title">Camera</string>
+    <string name="settings_remember_title">Remember camera settings</string>
+    <string name="settings_remember_desc">Applies saved settings on startup</string>
+    <string name="settings_remember_dialog_title">Remember...</string>
+    <string name="settings_remember_flash">Flash state</string>
+    <string name="settings_remember_zoom">Zoom level</string>
+    <string name="settings_remember_sensor">Camera Sensor</string>
+    <string name="settings_remember_resolution">Resolution</string>
+    <string name="settings_remember_quality">JPEG Quality</string>
+    <string name="settings_fps_title">Target FPS</string>
+    <string name="settings_stabilization_title">Disable Stabilization (OIS/EIS)</string>
+    <string name="settings_stabilization_desc">Improves latency on a tripod</string>
+    <string name="settings_flicker_title">Anti-Flicker</string>
+    <string name="settings_flicker_auto">Auto</string>
+    <string name="settings_flicker_off">Off</string>
+    <string name="settings_flicker_50hz">50Hz (Europe, Asia)</string>
+    <string name="settings_flicker_60hz">60Hz (North America)</string>
+    <string name="settings_noise_reduction_title">Noise Reduction</string>
+    <string name="settings_noise_reduction_auto">Auto</string>
+    <string name="settings_noise_reduction_off">Off</string>
+    <string name="settings_noise_reduction_low">Low (Fast)</string>
+    <string name="settings_noise_reduction_high">High (High Quality)</string>
+
+    <!-- Settings Screen: Controls -->
+    <string name="settings_controls_title">Controls</string>
+    <string name="settings_double_tap_title">Double-tap action</string>
+    <string name="settings_double_tap_off">Off</string>
+    <string name="settings_double_tap_switch_cam">Switch camera</string>
+    <string name="settings_double_tap_toggle_zoom">Toggle 2x zoom</string>
+    <string name="settings_volume_action_title">Volume key action</string>
+    <string name="settings_volume_action_off">Do nothing</string>
+    <string name="settings_volume_action_zoom">Control zoom</string>
+    <string name="settings_volume_action_switch_cam">Switch camera</string>
+    <string name="settings_volume_action_toggle_flash">Toggle flashlight</string>
+
+    <!-- About & Easter Egg -->
+    <string name="about_fork">This application is an improved fork, maintained by @alananassss.</string>
+    <string name="about_star">Star the repo on GitHub</string>
+    <string name="about_telegram">Feel free to contact me on Telegram for any suggestions: @alananassss</string>
+    <string name="about_version">Version %s</string>
+    <string name="egg_title_alan">A little note from the dev :p</string>
+    <string name="egg_message_alan">Hey there! Alan here ^^\n\nFunny that you clicked 7 times to get here!\n\nJust wanted to say thanks. This app is a \'fork\', which means I took the awesome base from the original dev and spent a ton of time adding my own improvements (days and days, evenings and weekends...).\n\nI really hope you find it useful!\n\nThanks for using it!\n- Alan</string>
+    <string name="egg_button_alan">Cool! Greetings!</string>
+
+    <string name="settings_power_title">Power and Screen</string>
+    <string name="settings_power_ignore_optimizations">Ignore battery optimizations</string>
+    <string name="settings_power_ignore_optimizations_desc">Bypass power-saving features (opens system settings)</string>
+    <string name="settings_power_auto_dim">Auto dim screen</string>
+    <string name="settings_power_auto_dim_dialog_title">Dim screen after...</string>
+    <string name="settings_power_auto_dim_off">Off</string>
+    <string name="settings_power_auto_dim_45s">45 seconds</string>
+    <string name="settings_power_auto_dim_1m">1 minute</string>
+    <string name="settings_power_auto_dim_90s">90 seconds</string>
+    <string name="settings_power_auto_dim_2m">2 minutes</string>
+    <string name="settings_power_auto_dim_3m">3 minutes</string>
+    <string name="settings_power_auto_dim_5m">5 minutes</string>
+    <string name="settings_power_lock_input">Lock input when dimmed</string>
+    <string name="settings_power_lock_input_desc">Prevents accidental input</string>
+    <string name="settings_power_background_streaming">Background streaming</string>
+    <string name="settings_power_background_streaming_desc">Keep service active when app is in background</string>
+    <string name="settings_power_allow_reconnects">Allow reconnects</string>
+    <string name="settings_power_allow_reconnects_desc">Allows clients to reconnect to the stream</string>
+    <string name="cam_overlay_locked">Screen dimmed and locked. Tap to unlock.</string>
+
+    <string name="settings_remote_control_title">Remote Control</string>
+    <string name="settings_zoom_smoothing_title">Zoom Smoothing</string>
+    <string name="settings_zoom_smoothing_desc">Smooths out zoom changes from volume keys and double-tap</string>
+    <string name="settings_zoom_smoothing_dialog_title">Smoothing Delay</string>
+    <string name="settings_zoom_smoothing_none">None (Instant)</string>
+
+    <string name="settings_network_title">Network</string>
+    <string name="settings_port_title">HTTP Port</string>
+    <string name="settings_port_summary">Port used by the MJPEG stream.</string>
+    <string name="settings_port_dialog_title">Set HTTP Port</string>
+    <string name="settings_port_dialog_label">Port (1025-65535)</string>
+    <string name="settings_port_dialog_invalid">Invalid port. Must be between 1025 and 65535.</string>
+
 </resources>
