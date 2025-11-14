@@ -8,22 +8,29 @@ import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.app.Service
 import android.content.Intent
-import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import android.view.Surface
 import androidx.core.app.NotificationCompat
 import com.samsung.android.scan3d.CameraActivity
 import com.samsung.android.scan3d.R
-import com.samsung.android.scan3d.fragments.CameraFragment
+import com.samsung.android.scan3d.ViewState
 import com.samsung.android.scan3d.http.HttpService
-import kotlinx.coroutines.runBlocking
+import com.samsung.android.scan3d.util.SettingsManager
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
 
-
-class Cam : Service() {
+class Cam : Service(), CoroutineScope {
     var engine: CamEngine? = null
     var http: HttpService? = null
-    val CHANNEL_ID = "REMOTE_CAM"
+    // Renamed to follow Kotlin property naming conventions.
+    private val channelId = "REMOTE_CAM"
+    private val job = Job()
+    override val coroutineContext: CoroutineContext
+        get() = Dispatchers.Main + job
 
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -31,99 +38,213 @@ class Cam : Service() {
 
         if (intent == null) return START_STICKY
 
+        if (http == null && intent.action != "start") {
+            Log.w("CAM", "Service not yet initialized (http=null). Command '${intent.action}' ignored.")
+            return START_STICKY
+        }
+
         when (intent.action) {
             "start" -> {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    CHANNEL_ID,
-                    NotificationManager.IMPORTANCE_DEFAULT
-                )
-                channel.description = "RemoteCam run"
-                val notificationManager = getSystemService(NotificationManager::class.java)
-                notificationManager.createNotificationChannel(channel)
+                if (http == null) {
+                    val channel = NotificationChannel(
+                        channelId,
+                        channelId,
+                        NotificationManager.IMPORTANCE_DEFAULT
+                    )
+                    channel.description = "RemoteCam run"
+                    val notificationManager = getSystemService(NotificationManager::class.java)
+                    notificationManager.createNotificationChannel(channel)
 
-                // Create a notification for the foreground service
-                val notificationIntent = Intent(this, CameraActivity::class.java)
-                val pendingIntent = PendingIntent.getActivity(
-                    this,
-                    System.currentTimeMillis().toInt(),
-                    notificationIntent,
-                    FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT
-                )
+                    val notificationIntent = Intent(this, CameraActivity::class.java)
+                    val pendingIntent = PendingIntent.getActivity(
+                        this,
+                        System.currentTimeMillis().toInt(),
+                        notificationIntent,
+                        FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT
+                    )
 
-                val intentKill = Intent("KILL")
-                val pendingIntentKill = PendingIntent.getBroadcast(
-                    this,
-                    System.currentTimeMillis().toInt(),
-                    intentKill,
-                    FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT
-                )
+                    val intentKill = Intent(this, Cam::class.java)
+                    intentKill.action = "KILL"
 
+                    val pendingIntentKill = PendingIntent.getService(
+                        this,
+                        System.currentTimeMillis().toInt(),
+                        intentKill,
+                        FLAG_IMMUTABLE or FLAG_UPDATE_CURRENT
+                    )
 
-                var builer =
-                    NotificationCompat.Builder(this, CHANNEL_ID)
-                        .setContentTitle("RemoteCam (active)")
-                        .setContentText("Click to open").setOngoing(true)
-                        .setSmallIcon(R.drawable.ic_linked_camera).addAction(R.drawable.ic_close, "Kill",pendingIntentKill)
-                        .setContentIntent(pendingIntent)
+                    val builder =
+                        NotificationCompat.Builder(this, channelId)
+                            .setContentTitle(getString(R.string.notif_title))
+                            .setContentText(getString(R.string.notif_text))
+                            .setOngoing(true)
+                            .setSmallIcon(R.drawable.ic_linked_camera)
+                            .addAction(R.drawable.ic_close, getString(R.string.notif_kill), pendingIntentKill)
+                            .setContentIntent(pendingIntent)
 
+                    val notification: Notification = builder.build()
 
+                    startForeground(123, notification)
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    //      builer?.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+                    http = HttpService(this)
+                    engine?.http = http
+
+                    launch(Dispatchers.IO) {
+                        // Correct method to start the http service is start(), not main().
+                        http?.start()
+                    }
                 }
-                val notification: Notification = builer.build()
-                startForeground(123, notification) // Start the foreground service
-
-                http = HttpService()
-                http?.main()
-
             }
 
             "onPause" -> {
-                engine?.insidePause = true
-                if (engine?.isShowingPreview == true) {
-                    engine?.restart()
-                }
+                val allowBackground = SettingsManager.loadBackgroundStreaming(this)
 
+                if (!allowBackground) {
+                    engine?.insidePause = true
+                    Log.i("CAM", "onPause: Background streaming disabled, pausing.")
+                } else {
+                    engine?.insidePause = false
+                    Log.i("CAM", "onPause: Background streaming enabled, continuing.")
+                }
             }
 
             "onResume" -> {
-                engine?.insidePause = false;
+                engine?.insidePause = false
+                Log.i("CAM", "onResume: Resuming.")
             }
 
-            "start_camera_engine" -> {
-                engine = CamEngine(this)
-                engine?.http = http
-                runBlocking { engine?.initializeCamera() }
+            "start_engine_with_surface" -> {
+                // Using modern, type-safe getParcelable since minSdk is >= 33.
+                val surface: Surface? = intent.extras?.getParcelable("surface", Surface::class.java)
+
+                engine?.let {
+                    if (it.insidePause) {
+                        Log.i("CAM", "New surface received, forcing insidePause to false.")
+                        it.insidePause = false
+                    }
+                }
+
+                if (engine == null) {
+                    Log.i("CAM", "CamEngine does not exist, creating...")
+                    val targetFps = SettingsManager.loadTargetFps(this)
+                    val antiFlicker = SettingsManager.loadAntiFlickerMode(this)
+                    val noiseReduction = SettingsManager.loadNoiseReductionMode(this)
+                    val stabilizationOff = SettingsManager.loadStabilizationOff(this)
+
+                    engine = CamEngine(
+                        context = this,
+                        targetFps = targetFps,
+                        currentAntiFlickerMode = antiFlicker,
+                        currentNoiseReductionMode = noiseReduction,
+                        isStabilizationOff = stabilizationOff
+                    )
+                    engine?.http = http
+                }
+
+                engine?.previewSurface = surface
+                engine?.initializeCamera()
             }
 
             "new_view_state" -> {
+                engine?.let { eng ->
+                    val old = eng.viewState
+                    // Using modern, type-safe getParcelable. The non-null assertion is kept from original code.
+                    val new: ViewState = intent.extras?.getParcelable("data", ViewState::class.java)!!
+                    eng.viewState = new
 
-                val old = engine?.viewState!!
-                val new : CameraFragment.Companion.ViewState = intent.extras?.getParcelable("data")!!
-                Log.i("CAM", "new_view_state: " + new)
-                Log.i("CAM", "from:           " + old)
-                engine?.viewState =  new
-                if (old != new) {
-                    Log.i("CAM", "diff")
+                    if (old.cameraId != new.cameraId ||
+                        old.resolutionIndex != new.resolutionIndex ||
+                        old.preview != new.preview)
+                    {
+                        Log.i("CAM", "Major change detected, restarting CamEngine.")
+                        eng.restart()
+                    }
+                    else if (old.flash != new.flash || old.quality != new.quality) {
+                        Log.i("CAM", "Minor change detected, updating request.")
+                        eng.updateRepeatingRequest()
+                    }
+                }
+            }
+
+            "preview_surface_destroyed" -> {
+                engine?.previewSurface = null
+                if (engine?.isShowingPreview == true) {
                     engine?.restart()
                 }
             }
 
-            "new_preview_surface" -> {
-                val surface: Surface? = intent.extras?.getParcelable("surface")
-                // Toast.makeText(this, "SURFACE", Toast.LENGTH_SHORT).show()
-                engine?.previewSurface = surface
-                if (engine?.viewState?.preview == true) {
-                    runBlocking { engine?.initializeCamera() }
-                }
+            "scale_zoom" -> {
+                val scale = intent.getFloatExtra("scale_factor", 1.0f)
+                engine?.scaleZoom(scale)
+            }
+
+            "set_zoom_ratio" -> {
+                val ratio = intent.getFloatExtra("ratio", 0.0f)
+                engine?.setZoomRatio(ratio)
+            }
+
+            "volume_zoom_in" -> {
+                engine?.stepZoomIn()
+            }
+            "volume_zoom_out" -> {
+                engine?.stepZoomOut()
+            }
+            "volume_action_switch_cam" -> {
+                engine?.switchToNextCamera()
+            }
+            "volume_action_toggle_flash" -> {
+                engine?.toggleFlash()
+            }
+
+            "set_target_fps" -> {
+                val fps = intent.getIntExtra("fps", 30)
+                engine?.setTargetFps(fps)
+            }
+
+            "double_tap_action_switch_camera" -> {
+                engine?.switchToNextCamera()
+            }
+
+            "double_tap_action_toggle_zoom" -> {
+                engine?.toggleZoom()
+            }
+
+            "set_anti_flicker" -> {
+                val mode = intent.getIntExtra("mode", SettingsManager.ANTI_FLICKER_AUTO)
+                engine?.setAntiFlickerMode(mode)
+            }
+
+            "set_noise_reduction" -> {
+                val mode = intent.getIntExtra("mode", SettingsManager.NR_AUTO)
+                engine?.setNoiseReductionMode(mode)
+            }
+
+            "set_stabilization" -> {
+                val isOff = intent.getBooleanExtra("is_off", false)
+                engine?.setStabilizationOff(isOff)
+            }
+
+            "set_zoom_smoothing" -> {
+                val delay = intent.getIntExtra("delay", SettingsManager.SMOOTH_DELAY_NONE)
+                engine?.setZoomSmoothingDelay(delay)
+            }
+
+            "set_http_port" -> {
+                val newPort = intent.getIntExtra("port", SettingsManager.DEFAULT_PORT)
+                http?.restartServer(newPort)
+
+                val uiIntent = Intent("PORT_UPDATED").setPackage(packageName)
+                sendBroadcast(uiIntent)
+                engine?.restart()
+            }
+
+            "KILL", "stop" -> {
+                kill()
             }
 
             else -> {
-               kill()
+                Log.w("CAM", "Unknown or unhandled action: ${intent.action}")
             }
-
         }
 
         return START_STICKY
@@ -131,9 +252,18 @@ class Cam : Service() {
 
     fun kill(){
         engine?.destroy()
-        http?.engine?.stop(500,500)
+        engine = null
+        // Call the new public stop() method on the http service.
+        http?.stop()
+        http = null
+
+        val intent = Intent("KILL_ACTIVITY").setPackage(packageName)
+        sendBroadcast(intent)
+
         stopForeground(STOP_FOREGROUND_REMOVE)
+        stopSelf()
     }
+
     override fun onBind(intent: Intent?): IBinder? {
         return null
     }
@@ -141,13 +271,9 @@ class Cam : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.i("CAM", "OnDestroy")
+        job.cancel()
         kill()
     }
 
-    companion object {
-        sealed class ToCam()
-        class Start() : ToCam()
-        class NewSurface(surface: Surface) : ToCam()
-
-    }
+    // Removed unused companion object.
 }
