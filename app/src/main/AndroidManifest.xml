@@ -1,4 +1,5 @@
-<?xml version="1.0" encoding="UTF-8"?><!--
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
   ~ Copyright 2020 The Android Open Source Project
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,21 +20,25 @@
     <!-- Permission declarations -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
-    <!-- A camera with (optional) RAW capability is required to use this application -->
+    <!-- Camera feature requirements -->
     <uses-feature android:name="android.hardware.camera.any" />
     <uses-feature
         android:name="android.hardware.camera.raw"
         android:required="false" />
 
     <application
-        android:allowBackup="true"
-        android:fullBackupContent="true"
-        android:icon="@drawable/ic_launcher"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
+        android:enableOnBackInvokedCallback="true"
         tools:ignore="GoogleAppIndexingWarning">
 
         <activity
@@ -51,11 +56,14 @@
 
         </activity>
 
+        <!-- Foreground service with camera type declaration for Android 14+ -->
         <service
             android:name="com.samsung.android.scan3d.serv.Cam"
             android:enabled="true"
             android:exported="true"
-            android:foregroundServiceType="camera" />
+            android:foregroundServiceType="camera"
+            android:permission="android.permission.FOREGROUND_SERVICE_CAMERA" />
+
     </application>
 
 </manifest>
