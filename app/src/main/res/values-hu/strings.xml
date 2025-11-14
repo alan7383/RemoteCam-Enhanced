@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RemoteCam</string>
+    <string name="notif_title">RemoteCam (aktív)</string>
+    <string name="notif_text">Koppintson a megnyitáshoz</string>
+    <string name="notif_kill">Leállítás</string>
+
+    <string name="perm_welcome">Üdvözli a RemoteCam alkalmazás</string>
+    <string name="perm_desc">A működéshez az alkalmazásnak hozzá kell férnie a kamerához, és értesítéseket kell megjelenítenie.</string>
+    <string name="perm_cam_reason">Videó rögzítéséhez és streameléséhez.</string>
+    <string name="perm_notif_reason">A szolgáltatás aktívan tartásához a háttérben.</string>
+    <string name="perm_button">Engedélyek megadása</string>
+    <string name="perm_toast_denied">Az alkalmazás használatához minden engedély szükséges.</string>
+    <string name="perm_welcome_title">Engedély szükséges</string>
+    <string name="perm_reasons_title">Miért kellenek ezek az engedélyek?</string>
+
+    <string name="cam_settings">Beállítások</string>
+    <string name="cam_stop">STOP</string>
+    <string name="cam_controls">Vezérlők</string>
+    <string name="cam_local_preview">Helyi előnézet</string>
+    <string name="cam_mjpeg_stream">MJPEG Stream</string>
+    <string name="cam_flash">Vaku</string>
+    <string name="cam_information">Információ</string>
+    <string name="cam_parameters">Paraméterek</string>
+    <string name="cam_sensor">Érzékelő</string>
+    <string name="cam_resolution">Felbontás</string>
+    <string name="cam_quality">JPEG minőség</string>
+    <string name="cam_clipboard_copied">Vágólapra másolva</string>
+
+    <string name="settings_title">Beállítások</string>
+    <string name="settings_back">Vissza</string>
+    <string name="settings_appearance">Megjelenés</string>
+    <string name="settings_theme">Téma</string>
+    <string name="settings_theme_auto">Automatikus (rendszer)</string>
+    <string name="settings_theme_light">Világos</string>
+    <string name="settings_theme_dark">Sötét</string>
+    <string name="settings_monet">Dinamikus szín (Monet)</string>
+
+    <string name="settings_behavior_title">Viselkedés</string>
+    <string name="settings_keep_screen_on">Képernyő bekapcsolva tartása</string>
+    <string name="settings_language">Nyelv</string>
+    <string name="settings_lang_auto">Automatikus (rendszer)</string>
+    <string name="settings_lang_en">English</string>
+    <string name="settings_lang_fr">Français (French)</string>
+    <string name="settings_lang_hu">Magyar</string>
+
+    <string name="settings_additional_title">További beállítások</string>
+    <string name="settings_app_title">Alkalmazás</string>
+    <string name="settings_about_app">Az alkalmazásról</string>
+    <string name="settings_about_title">A RemoteCam névjegye</string>
+    <string name="settings_close">Bezárás</string>
+    <string name="settings_save">Mentés</string>
+
+    <string name="settings_camera_title">Kamera</string>
+    <string name="settings_remember_title">Kamerabeállítások megjegyzése</string>
+    <string name="settings_remember_desc">Indításkor alkalmazza a mentett beállításokat</string>
+    <string name="settings_remember_dialog_title">Megjegyzés...</string>
+    <string name="settings_remember_flash">Vaku állapota</string>
+    <string name="settings_remember_zoom">Zoom szint</string>
+    <string name="settings_remember_sensor">Kameraérzékelő</string>
+    <string name="settings_remember_resolution">Felbontás</string>
+    <string name="settings_remember_quality">JPEG minőség</string>
+    <string name="settings_fps_title">Cél FPS</string>
+    <string name="settings_stabilization_title">Stabilizálás letiltása (OIS/EIS)</string>
+    <string name="settings_stabilization_desc">Javítja a késleltetést állvány használatakor</string>
+    <string name="settings_flicker_title">Villódzásgátló</string>
+    <string name="settings_flicker_auto">Automatikus</string>
+    <string name="settings_flicker_off">Ki</string>
+    <string name="settings_flicker_50hz">50Hz (Európa, Ázsia)</string>
+    <string name="settings_flicker_60hz">60Hz (Észak-Amerika)</string>
+
+    <string name="settings_noise_reduction_title">Zajcsökkentés</string>
+    <string name="settings_noise_reduction_auto">Automatikus</string>
+    <string name="settings_noise_reduction_off">Ki</string>
+    <string name="settings_noise_reduction_low">Alacsony (gyors)</string>
+    <string name="settings_noise_reduction_high">Magas (jobb minőség)</string>
+
+    <string name="settings_controls_title">Vezérlők</string>
+    <string name="settings_double_tap_title">Dupla koppintás művelete</string>
+    <string name="settings_double_tap_off">Ki</string>
+    <string name="settings_double_tap_switch_cam">Kameraváltás</string>
+    <string name="settings_double_tap_toggle_zoom">2x zoom váltása</string>
+    <string name="settings_volume_action_title">Hangerőgomb művelet</string>
+    <string name="settings_volume_action_off">Nincs művelet</string>
+    <string name="settings_volume_action_zoom">Zoom vezérlés</string>
+    <string name="settings_volume_action_switch_cam">Kameraváltás</string>
+    <string name="settings_volume_action_toggle_flash">Vaku váltása</string>
+
+    <string name="about_fork">Ez az alkalmazás egy továbbfejlesztett fork, karbantartója: @alananassss.</string>
+    <string name="about_star">Csillagozza a repót GitHubon</string>
+    <string name="about_telegram">Keressen bátran Telegramon javaslatokkal: @alananassss</string>
+    <string name="about_version">Verzió %s</string>
+
+    <string name="egg_title_alan">Egy kis üzenet a fejlesztőtől :p</string>
+    <string name="egg_message_alan">Szia! Alan vagyok ^^\n\nVicces, hogy hétszer koppintottál ide!\n\nCsak köszönetet akartam mondani. Ez az app egy „fork”, ami azt jelenti, hogy az eredeti fejlesztő fantasztikus alapját vettem, és rengeteg időt (napokat, estéket és hétvégéket...) töltöttem a saját fejlesztéseim hozzáadásával.\n\nNagyon remélem, hogy hasznosnak találod!\n\nKöszi, hogy használod!\n- Alan</string>
+    <string name="egg_button_alan">Király! Üdv!</string>
+
+    <string name="settings_power_title">Energia és képernyő</string>
+    <string name="settings_power_ignore_optimizations">Akkumulátor-optimalizálás figyelmen kívül hagyása</string>
+    <string name="settings_power_ignore_optimizations_desc">Energiatakarékos funkciók megkerülése (rendszerbeállításokat nyit meg)</string>
+    <string name="settings_power_auto_dim">Képernyő automatikus sötétítése</string>
+    <string name="settings_power_auto_dim_dialog_title">Képernyő sötétítése ennyi idő után...</string>
+    <string name="settings_power_auto_dim_off">Ki</string>
+    <string name="settings_power_auto_dim_45s">45 másodperc</string>
+    <string name="settings_power_auto_dim_1m">1 perc</string>
+    <string name="settings_power_auto_dim_90s">90 másodperc</string>
+    <string name="settings_power_auto_dim_2m">2 perc</string>
+    <string name="settings_power_auto_dim_3m">3 perc</string>
+    <string name="settings_power_auto_dim_5m">5 perc</string>
+    <string name="settings_power_lock_input">Bemenet zárolása sötétítéskor</string>
+    <string name="settings_power_lock_input_desc">Megakadályozza a véletlen bevitelt</string>
+    <string name="settings_power_background_streaming">Háttérben történő streamelés</string>
+    <string name="settings_power_background_streaming_desc">A szolgáltatás aktívan tartása, ha az alkalmazás a háttérben van</string>
+    <string name="settings_power_allow_reconnects">Újracsatlakozás engedélyezése</string>
+    <string name="settings_power_allow_reconnects_desc">Lehetővé teszi a kliensek számára, hogy újracsatlakozzanak a streamhez</string>
+    <string name="cam_overlay_locked">A képernyő elsötétítve és zárolva. Koppintson a feloldáshoz.</string>
+
+    <string name="settings_remote_control_title">Távirányító</string>
+    <string name="settings_zoom_smoothing_title">Zoom simítás</string>
+    <string name="settings_zoom_smoothing_desc">Simítja a hangerőgombok és a dupla koppintás által végzett zoomváltozásokat</string>
+    <string name="settings_zoom_smoothing_dialog_title">Simítási késleltetés</string>
+    <string name="settings_zoom_smoothing_none">Nincs (azonnali)</string>
+
+    <string name="settings_network_title">Hálózat</string>
+    <string name="settings_port_title">HTTP-port</string>
+    <string name="settings_port_summary">Az MJPEG stream által használt port.</string>
+    <string name="settings_port_dialog_title">HTTP-port beállítása</string>
+    <string name="settings_port_dialog_label">Port (1025–65535)</string>
+    <string name="settings_port_dialog_invalid">Érvénytelen port. 1025 és 65535 között kell lennie.</string>
+</resources>
