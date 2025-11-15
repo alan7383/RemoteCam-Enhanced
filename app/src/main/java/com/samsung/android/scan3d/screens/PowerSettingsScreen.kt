@@ -39,6 +39,8 @@ import com.samsung.android.scan3d.util.SettingsManager
 import androidx.compose.material.icons.rounded.SettingsEthernet
 import com.samsung.android.scan3d.fragments.PortSettingDialog
 import androidx.core.net.toUri
+import androidx.compose.ui.text.font.FontWeight
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,14 +73,20 @@ fun PowerSettingsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.settings_power_title)) },
+                title = { Text(stringResource(R.string.settings_power_title), fontWeight = FontWeight.Bold) },
                 navigationIcon = {
-                    IconButton(onClick = onBackClicked) {
+                    FilledTonalIconButton(
+                        onClick = onBackClicked,
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    ) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         }
