@@ -28,7 +28,7 @@ android {
     }
 
     composeOptions {
-        kotlinCompilerExtensionVersion "2.0.0"
+        kotlinCompilerExtensionVersion = "2.0.0"
     }
 
     buildTypes {
@@ -36,7 +36,7 @@ android {
             debuggable false
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig = signingConfigs.debug
         }
     }
     packagingOptions {
@@ -44,10 +44,10 @@ android {
         exclude("META-INF/io.netty.versions.properties")
     }
     buildFeatures {
-        compose true
+        compose = true
         buildConfig = true
     }
-    namespace 'com.samsung.android.scan3d'
+    namespace = 'com.samsung.android.scan3d'
 }
 
 dependencies {
