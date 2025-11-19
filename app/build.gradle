@@ -13,7 +13,7 @@ android {
         minSdkVersion 33
         targetSdkVersion 36
         versionCode 4
-        versionName "1.0.0"
+        versionName "1.0.1"
     }
 
     compileOptions {
@@ -63,8 +63,8 @@ dependencies {
     // AndroidX Core
     implementation "androidx.core:core-ktx:$core_ktx_version"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
-    implementation "androidx.activity:activity-ktx:1.11.0"
-    implementation "androidx.activity:activity-compose:1.11.0"
+    implementation "androidx.activity:activity-ktx:1.12.0"
+    implementation "androidx.activity:activity-compose:1.12.0"
 
     implementation "androidx.navigation:navigation-compose:2.9.6"
 
