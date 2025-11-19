@@ -20,7 +20,6 @@ modern code, and the goal of matching *everything* DroidCam can do (and more soo
 coming soon: (maybe)
 - multiple lenses (wide / tele / ultra-wide)
 - audio streaming 🎤
-- auto reconnect & network discovery
 
 ---
 
