@@ -17,10 +17,6 @@ modern code, and the goal of matching *everything* DroidCam can do (and more soo
 - cleaner codebase and faster streaming
 - still light and simple to use ^^
 
-coming soon: (maybe)
-- multiple lenses (wide / tele / ultra-wide)
-- audio streaming 🎤
-
 ---
 
 ### how it works
