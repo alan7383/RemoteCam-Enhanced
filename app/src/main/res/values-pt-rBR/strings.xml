@@ -45,7 +45,7 @@
     <string name="settings_lang_en">English (Inglês)</string>
     <string name="settings_lang_fr">Français (Francês)</string>
     <string name="settings_lang_hu">Magyar (Húngaro)</string>
-    <string name="settings_lang_pt-rBR">Português Brasileiro</string>
+    <string name="settings_lang_pt_BR">Português Brasileiro</string>
     <string name="settings_additional_title">Configurações Adicionais</string>
     <string name="settings_app_title">Aplicativo</string>
     <string name="settings_about_app">Aplicativo</string>
