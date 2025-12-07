@@ -382,7 +382,8 @@ fun LanguageDialog(
         SettingsManager.LANG_AUTO to stringResource(R.string.settings_lang_auto),
         SettingsManager.LANG_EN to stringResource(R.string.settings_lang_en),
         SettingsManager.LANG_FR to stringResource(R.string.settings_lang_fr),
-        SettingsManager.LANG_HU to stringResource(R.string.settings_lang_hu)
+        SettingsManager.LANG_HU to stringResource(R.string.settings_lang_hu),
+        SettingsManager.LANG_PT to stringResource(R.string.settings_lang_pt_br)
     )
 
     AlertDialog(
