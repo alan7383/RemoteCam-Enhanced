@@ -43,6 +43,7 @@
     <string name="settings_lang_en">English</string>
     <string name="settings_lang_fr">Français (French)</string>
     <string name="settings_lang_hu">Magyar</string>
+    <string name="settings_lang_pt_br">Portugál (Portuguese)</string>
 
     <string name="settings_additional_title">További beállítások</string>
     <string name="settings_app_title">Alkalmazás</string>
