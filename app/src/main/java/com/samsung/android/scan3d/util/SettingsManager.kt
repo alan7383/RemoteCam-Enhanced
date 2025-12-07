@@ -74,6 +74,7 @@ object SettingsManager {
     const val LANG_EN = "en"
     const val LANG_FR = "fr"
     const val LANG_HU = "hu"
+    const val LANG_PT = "pt"
 
     // --- Action Constants ---
     const val DOUBLE_TAP_OFF = 0
