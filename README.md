@@ -62,6 +62,19 @@ ffmpeg -i http://192.168.x.x:8080/mjpeg -f v4l2 /dev/video0
 
 ---
 
+### contributing 💡
+
+I’m **open to contributions**!
+Feel free to submit a **pull request** for:
+
+* adding new **translations / languages** to the app
+* improving the **codebase**, refactoring, optimizations
+* UI tweaks, bug fixes, new ideas, etc.
+
+If you want to help, just make a PR, I’ll check it as soon as possible ^^
+
+---
+
 ### why
 
 droidcam is good, but most features are behind a paywall.
@@ -82,4 +95,3 @@ this fork is also under the **MIT license**
 <p align="center">
   made with ☕ and a bit of chaos by <a href="https://github.com/alan7383">alan7383</a> (´･ω･`)
 </p>
-
