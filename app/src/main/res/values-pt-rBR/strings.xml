@@ -7,7 +7,7 @@
 
     <!-- Tela de Permissões -->
     <string name="perm_welcome">Bem-vindo(a) ao RemoteCam</string>
-    <string name="perm_desc">Para funcionar, o app precisa do accesso à sua câmera e para exibir notificações.</string>
+    <string name="perm_desc">Para funcionar, o app precisa do acesso à sua câmera e para exibir notificações.</string>
     <string name="perm_cam_reason">Para capturar e transmitir vídeo.</string>
     <string name="perm_notif_reason">Para manter o serviço ativo em segundo plano.</string>
     <string name="perm_button">Conceder permissões</string>
@@ -45,7 +45,7 @@
     <string name="settings_lang_en">English (Inglês)</string>
     <string name="settings_lang_fr">Français (Francês)</string>
     <string name="settings_lang_hu">Magyar (Húngaro)</string>
-    <string name="settings_lang_pt_br">Português Brasileiro</string>
+    <string name="settings_lang_pt_br">Português (Brasileiro)</string>
     <string name="settings_additional_title">Configurações Adicionais</string>
     <string name="settings_app_title">Aplicativo</string>
     <string name="settings_about_app">Aplicativo</string>
@@ -92,16 +92,16 @@
     <!-- Sobre & Easter Egg -->
     <string name="about_fork">Este aplicativo é uma versão melhorada, mantido por @alananassss.</string>
     <string name="about_star">Dê uma estrela no GitHub</string>
-    <string name="about_telegram">Sinta-se livre em me contactar no Telegram para qualquer sugestão: @alananassss</string>
+    <string name="about_telegram">Fique à vontade para me contatar no Telegram para qualquer sugestão: @alananassss</string>
     <string name="about_version">Versão %s</string>
     <string name="egg_title_alan">Um pouquinho mais do dev :p</string>
-    <string name="egg_message_alan">Olá! Alan aqui ^^\n\nEngraçado que você clicou 7 vezes para chegar aqui!\n\nApenas queria dizer obrigado. Este app é um \'fork\', que significa que eu peguei a base incrível do desenvolvedor original e gastei bastante tempo adicionando minhas próprias melhorias (dias e dias, noites e fim de semanas...).\n\nEspero sinceramente que você ache isso útil!\n\nObrigado por usar!\n- Alan</string>
+    <string name="egg_message_alan">Olá! Alan aqui ^^\n\nEngraçado que você clicou 7 vezes para chegar aqui!\n\nApenas queria dizer obrigado. Este app é um \'fork\', que significa que eu peguei a base incrível do desenvolvedor original e gastei bastante tempo adicionando minhas próprias melhorias (dias e dias, noites e fins de semanas...).\n\nEspero sinceramente que você ache isso útil!\n\nObrigado por usar!\n- Alan</string>
     <string name="egg_button_alan">Legal! Saudações!</string>
 
     <string name="settings_power_title">Energia e Tela</string>
     <string name="settings_power_ignore_optimizations">Ignorar as otimizações de bateria</string>
     <string name="settings_power_ignore_optimizations_desc">Contornar as funções de economia de bateria (abre as configurações do sistema)</string>
-    <string name="settings_power_auto_dim">Escurecer a tela automáticamente</string>
+    <string name="settings_power_auto_dim">Escurecer a tela automaticamente</string>
     <string name="settings_power_auto_dim_dialog_title">Escurecer a tela após...</string>
     <string name="settings_power_auto_dim_off">Desativado</string>
     <string name="settings_power_auto_dim_45s">45 segundos</string>
@@ -113,7 +113,7 @@
     <string name="settings_power_lock_input">Bloquear entrada quando a tela escurecer</string>
     <string name="settings_power_lock_input_desc">Impede toques acidentais</string>
     <string name="settings_power_background_streaming">Transmissão em segundo plano</string>
-    <string name="settings_power_background_streaming_desc">Mantem o serviço ativo quando o app estiver em segundo plano</string>
+    <string name="settings_power_background_streaming_desc">Mantém o serviço ativo quando o app estiver em segundo plano</string>
     <string name="settings_power_allow_reconnects">Permitir reconexões</string>
     <string name="settings_power_allow_reconnects_desc">Permitir o cliente reconectar à transmissão</string>
     <string name="cam_overlay_locked">Tela escurecida e bloqueada. Toque para desbloquear.</string>
@@ -122,7 +122,7 @@
     <string name="settings_zoom_smoothing_title">Suavização no Zoom</string>
     <string name="settings_zoom_smoothing_desc">Suaviza as mudanças no zoom das teclas de volume e do toque duplo</string>
     <string name="settings_zoom_smoothing_dialog_title">Atraso de Suavização</string>
-    <string name="settings_zoom_smoothing_none">None (Instant)</string>
+    <string name="settings_zoom_smoothing_none">Nenhum (Instantâneo)</string>
 
     <string name="settings_network_title">Rede</string>
     <string name="settings_port_title">Porta HTTP</string>
