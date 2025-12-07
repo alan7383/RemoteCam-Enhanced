@@ -139,6 +139,8 @@ fun SettingsScreen(
                 val langSummary = when (currentLanguage) {
                     SettingsManager.LANG_EN -> stringResource(R.string.settings_lang_en)
                     SettingsManager.LANG_FR -> stringResource(R.string.settings_lang_fr)
+                    SettingsManager.LANG_HU -> stringResource(R.string.settings_lang_hu)
+                    SettingsManager.LANG_PT -> stringResource(R.string.settings_lang_pt_br)
                     else -> stringResource(R.string.settings_lang_auto)
                 }
                 SettingsClickableRow(
