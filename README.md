@@ -50,14 +50,14 @@ not on play store
 
 **in obs:**  
 add a browser or media source →  
-paste your stream url (like `http://192.168.x.x:8080/mjpeg`)  
+paste your stream url (like `http://192.168.x.x:8080/cam.mjpeg`)  
 browser source = lowest latency.
 
 ![screenshot](assets/obs_mediasource.png)
 
 **linux (v4l2):**
 ```bash
-ffmpeg -i http://192.168.x.x:8080/mjpeg -f v4l2 /dev/video0
+ffmpeg -i http://192.168.x.x:8080/cam.mjpeg -f v4l2 /dev/video0
 ````
 
 ---
