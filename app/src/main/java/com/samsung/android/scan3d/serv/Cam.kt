@@ -26,7 +26,6 @@ import kotlin.coroutines.CoroutineContext
 class Cam : Service(), CoroutineScope {
     var engine: CamEngine? = null
     var http: HttpService? = null
-    // Renamed to follow Kotlin property naming conventions.
     private val channelId = "REMOTE_CAM"
     private val job = Job()
     override val coroutineContext: CoroutineContext
@@ -34,12 +33,12 @@ class Cam : Service(), CoroutineScope {
 
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.i("CAM", "onStartCommand " + intent?.action)
+        Log.i("cam", "onstartcommand " + intent?.action)
 
         if (intent == null) return START_STICKY
 
         if (http == null && intent.action != "start") {
-            Log.w("CAM", "Service not yet initialized (http=null). Command '${intent.action}' ignored.")
+            Log.w("cam", "service not yet initialized (http=null). command '${intent.action}' ignored.")
             return START_STICKY
         }
 
@@ -51,7 +50,7 @@ class Cam : Service(), CoroutineScope {
                         channelId,
                         NotificationManager.IMPORTANCE_DEFAULT
                     )
-                    channel.description = "RemoteCam run"
+                    channel.description = "remotecam run"
                     val notificationManager = getSystemService(NotificationManager::class.java)
                     notificationManager.createNotificationChannel(channel)
 
@@ -90,7 +89,6 @@ class Cam : Service(), CoroutineScope {
                     engine?.http = http
 
                     launch(Dispatchers.IO) {
-                        // Correct method to start the http service is start(), not main().
                         http?.start()
                     }
                 }
@@ -101,31 +99,25 @@ class Cam : Service(), CoroutineScope {
 
                 if (!allowBackground) {
                     engine?.insidePause = true
-                    Log.i("CAM", "onPause: Background streaming disabled, pausing.")
                 } else {
                     engine?.insidePause = false
-                    Log.i("CAM", "onPause: Background streaming enabled, continuing.")
                 }
             }
 
             "onResume" -> {
                 engine?.insidePause = false
-                Log.i("CAM", "onResume: Resuming.")
             }
 
             "start_engine_with_surface" -> {
-                // Using modern, type-safe getParcelable since minSdk is >= 33.
                 val surface: Surface? = intent.extras?.getParcelable("surface", Surface::class.java)
 
                 engine?.let {
                     if (it.insidePause) {
-                        Log.i("CAM", "New surface received, forcing insidePause to false.")
                         it.insidePause = false
                     }
                 }
 
                 if (engine == null) {
-                    Log.i("CAM", "CamEngine does not exist, creating...")
                     val targetFps = SettingsManager.loadTargetFps(this)
                     val antiFlicker = SettingsManager.loadAntiFlickerMode(this)
                     val noiseReduction = SettingsManager.loadNoiseReductionMode(this)
@@ -148,7 +140,6 @@ class Cam : Service(), CoroutineScope {
             "new_view_state" -> {
                 engine?.let { eng ->
                     val old = eng.viewState
-                    // Using modern, type-safe getParcelable. The non-null assertion is kept from original code.
                     val new: ViewState = intent.extras?.getParcelable("data", ViewState::class.java)!!
                     eng.viewState = new
 
@@ -156,11 +147,9 @@ class Cam : Service(), CoroutineScope {
                         old.resolutionIndex != new.resolutionIndex ||
                         old.preview != new.preview)
                     {
-                        Log.i("CAM", "Major change detected, restarting CamEngine.")
                         eng.restart()
                     }
                     else if (old.flash != new.flash || old.quality != new.quality) {
-                        Log.i("CAM", "Minor change detected, updating request.")
                         eng.updateRepeatingRequest()
                     }
                 }
@@ -243,17 +232,18 @@ class Cam : Service(), CoroutineScope {
             }
 
             else -> {
-                Log.w("CAM", "Unknown or unhandled action: ${intent.action}")
+                Log.w("cam", "unknown or unhandled action: ${intent.action}")
             }
         }
 
         return START_STICKY
     }
 
-    fun kill(){
+    private fun kill(){
+        // on lance la destruction propre de l'engine, qui va tuer son propre thread à la fin
         engine?.destroy()
         engine = null
-        // Call the new public stop() method on the http service.
+
         http?.stop()
         http = null
 
@@ -270,10 +260,8 @@ class Cam : Service(), CoroutineScope {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.i("CAM", "OnDestroy")
+        Log.i("cam", "ondestroy")
+        kill() // appeler kill() pour s'assurer que tout est bien nettoyé
         job.cancel()
-        kill()
     }
-
-    // Removed unused companion object.
 }

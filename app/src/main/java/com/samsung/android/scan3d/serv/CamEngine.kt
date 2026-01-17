@@ -9,6 +9,7 @@ import android.hardware.camera2.*
 import android.hardware.camera2.params.OutputConfiguration
 import android.hardware.camera2.params.SessionConfiguration
 import android.media.ImageReader
+import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Parcelable
@@ -59,17 +60,22 @@ class CamEngine(
     private var isInitializing = false
     @Volatile
     private var restartPending = false
+    @Volatile
+    private var isShuttingDown = false // flag pour prévenir le redémarrage pendant la destruction
 
     private var lastQuickUpdateTime = 0L
     private val quickUpdateIntervalMs = 500L
 
     private var currentSmoothingDelay: Int = SettingsManager.loadZoomSmoothingDelay(context)
     private var zoomAnimatorJob: Job? = null
-    private val zoomAnimationSteps = 10 // Number of steps for the animation
+    private val zoomAnimationSteps = 10
 
-    // --- CAMERA VARIABLES (will be initialized later) ---
+    // --- camera variables ---
+    private var minZoom: Float = 1.0f
     private var maxZoom: Float = 1.0f
     private var currentZoomRatio: Float = 1.0f
+    private var useZoomRatioApi: Boolean = false
+
     private lateinit var activeArraySize: Rect
     private var captureRequestBuilder: CaptureRequest.Builder? = null
     private var sessionCallback: CameraCaptureSession.CaptureCallback? = null
@@ -98,27 +104,26 @@ class CamEngine(
     private fun stopRunning() {
         zoomAnimatorJob?.cancel()
         if (session != null) {
-            Log.i("CAMERA", "close")
             try {
                 session!!.stopRepeating()
                 session!!.close()
             } catch (e: Exception) {
-                Log.e("CamEngine", "Error while closing session", e)
+                // ignorer les erreurs si la session est déjà invalide
             }
             session = null
-            try {
-                if (::camera.isInitialized) camera.close()
-                if (::imageReader.isInitialized) imageReader.close()
-            } catch (e: Exception) {
-                Log.e("CamEngine", "Error closing camera/imageReader", e)
-            }
+        }
+        try {
+            if (::camera.isInitialized) camera.close()
+            if (::imageReader.isInitialized) imageReader.close()
+        } catch (e: Exception) {
+            // ignorer, la caméra est peut-être déjà partie
         }
     }
 
     fun restart() {
+        if (isShuttingDown) return // ne pas redémarrer si on est en train de fermer
         cameraScope.launch {
             if (isInitializing) {
-                Log.w("CamEngine", "Initialization in progress, queuing restart.")
                 restartPending = true
                 return@launch
             }
@@ -127,11 +132,10 @@ class CamEngine(
                 stopRunning()
                 initializeCameraInternal()
             } catch (e: Exception) {
-                Log.e("CamEngine", "Failed to restart camera", e)
+                Log.e("camengine", "failed to restart camera", e)
             } finally {
                 isInitializing = false
                 if (restartPending) {
-                    Log.i("CamEngine", "Executing queued restart.")
                     restartPending = false
                     restart()
                 }
@@ -144,85 +148,55 @@ class CamEngine(
         try {
             manager.openCamera(cameraId, object : CameraDevice.StateCallback() {
                 override fun onOpened(device: CameraDevice) {
-                    // --- FIXED ---
-                    if (cont.context.isActive) {
-                        cont.resume(device)
-                    } else {
+                    // si on est en train de fermer, on referme direct
+                    if (isShuttingDown || !cont.context.isActive) {
                         device.close()
+                        return
                     }
+                    if (cont.context.isActive) cont.resume(device)
                 }
-
                 override fun onDisconnected(device: CameraDevice) {
-                    Log.w("CamEngine", "Camera $cameraId has been disconnected")
+                    try { device.close() } catch(_: Exception){}
                 }
-
                 override fun onError(device: CameraDevice, error: Int) {
-                    val msg = when(error) { else -> "Unknown" }
-                    val exc = RuntimeException("Camera $cameraId error: ($error) $msg")
-                    Log.e("CamEngine", exc.message, exc)
-                    // --- FIXED ---
-                    if (cont.context.isActive) {
-                        cont.resumeWithException(exc)
-                    }
+                    val exc = RuntimeException("camera $cameraId error: $error")
+                    if (cont.context.isActive) cont.resumeWithException(exc)
                 }
             }, handler)
         } catch (e: Exception) {
-            Log.e("CamEngine", "Synchronous error during openCamera", e)
-            // --- FIXED ---
-            if (cont.context.isActive) {
-                cont.resumeWithException(e)
-            }
+            if (cont.context.isActive) cont.resumeWithException(e)
         }
     }
 
     private suspend fun createCaptureSession(device: CameraDevice, targets: List<Surface>, handler: Handler? = null): CameraCaptureSession = suspendCoroutine { cont ->
         val stateCallback = object : CameraCaptureSession.StateCallback() {
             override fun onConfigured(session: CameraCaptureSession) {
-                if (cont.context.isActive) {
-                    cont.resume(session)
-                } else {
+                if (isShuttingDown || !cont.context.isActive) {
                     session.close()
+                    return
                 }
+                if (cont.context.isActive) cont.resume(session)
             }
-
             override fun onConfigureFailed(session: CameraCaptureSession) {
-                val exc = RuntimeException("Camera ${device.id} session configuration failed")
-                Log.e("CamEngine", exc.message, exc)
-                // --- FIXED ---
-                if (cont.context.isActive) {
-                    cont.resumeWithException(exc)
-                }
+                val exc = RuntimeException("camera session configuration failed")
+                if (cont.context.isActive) cont.resumeWithException(exc)
             }
         }
-
         try {
-            // No if/else needed, assuming minSdk >= 28 (P)
             val outputConfigs = targets.map { OutputConfiguration(it) }
-            // Convert Handler to Executor
             val executor = Executor { runnable -> handler?.post(runnable) ?: runnable.run() }
-            val sessionConfig = SessionConfiguration(
-                SessionConfiguration.SESSION_REGULAR,
-                outputConfigs,
-                executor,
-                stateCallback
-            )
+            val sessionConfig = SessionConfiguration(SessionConfiguration.SESSION_REGULAR, outputConfigs, executor, stateCallback)
             device.createCaptureSession(sessionConfig)
-
         } catch (e: Exception) {
-            Log.e("CamEngine", "Synchronous error during createCaptureSession", e)
-            // --- FIXED ---
-            if (cont.context.isActive) {
-                cont.resumeWithException(e)
-            }
+            if (cont.context.isActive) cont.resumeWithException(e)
         }
     }
 
     private suspend fun initializeCameraInternal() {
-        Log.i("CAMERA", "initializeCameraInternal")
+        if (isShuttingDown) return
         stopRunning()
 
         if (cameraList.none { it.cameraId == viewState.cameraId }) {
-            Log.w("CamEngine", "Saved camera (${viewState.cameraId}) not found. Reverting to default camera.")
             viewState = viewState.copy(cameraId = defaultCameraId)
             SettingsManager.saveSettings(context, viewState)
         }
@@ -237,36 +211,43 @@ class CamEngine(
             availableNoiseReductionModes = characteristics.get(CameraCharacteristics.NOISE_REDUCTION_AVAILABLE_NOISE_REDUCTION_MODES) ?: intArrayOf()
             availableOisModes = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION) ?: intArrayOf()
             availableEisModes = characteristics.get(CameraCharacteristics.CONTROL_AVAILABLE_VIDEO_STABILIZATION_MODES) ?: intArrayOf()
-            maxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM) ?: 1.0f
             activeArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)!!
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                val zoomRatioRange = characteristics.get(CameraCharacteristics.CONTROL_ZOOM_RATIO_RANGE)
+                if (zoomRatioRange != null) {
+                    useZoomRatioApi = true
+                    minZoom = zoomRatioRange.lower
+                    maxZoom = zoomRatioRange.upper
+                } else {
+                    useZoomRatioApi = false
+                    minZoom = 1.0f
+                    maxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM) ?: 1.0f
+                }
+            } else {
+                useZoomRatioApi = false
+                minZoom = 1.0f
+                maxZoom = characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM) ?: 1.0f
+            }
+
         } catch (e: Exception) {
-            Log.e("CamEngine", "Could not get characteristics for ${viewState.cameraId}. Aborting.", e)
+            val fallback = cameraList.firstOrNull()?.cameraId
+            if (fallback != null && fallback != viewState.cameraId) {
+                viewState = viewState.copy(cameraId = fallback)
+                SettingsManager.saveSettings(context, viewState)
+                initializeCameraInternal()
+            }
             return
         }
 
-        if (sizes.isEmpty()) {
-            Log.e("CamEngine", "No JPEG sizes found for ${viewState.cameraId}")
-            return
-        }
+        if (sizes.isEmpty()) return
 
         val isFirstSetup = (viewState.resolutionIndex == null)
         val isIndexInvalid = !isFirstSetup && viewState.resolutionIndex!! >= sizes.size
 
         if (isFirstSetup || isIndexInvalid) {
-            if (isFirstSetup) {
-                Log.i("CamEngine", "First run detected. Applying default settings (1280x720, 1% quality).")
-                val targetWidth = 1280
-                val targetHeight = 720
-                var targetIndex = sizes.indexOfFirst { it.width == targetWidth && it.height == targetHeight }
-                if (targetIndex == -1) {
-                    Log.w("CamEngine", "Resolution 1280x720 does not exist, falling back to <= 720p.")
-                    targetIndex = sizes.indexOfLast { it.height <= 720 }.takeIf { it != -1 } ?: (sizes.size - 1)
-                }
-                viewState = viewState.copy(resolutionIndex = targetIndex, quality = 1)
-            } else {
-                Log.w("CamEngine", "Invalid resolution index. Resetting to a size <= 720p.")
-                viewState = viewState.copy(resolutionIndex = sizes.indexOfLast { it.height <= 720 }.takeIf { it != -1 } ?: (sizes.size - 1))
-            }
+            val targetIndex = sizes.indexOfLast { it.height <= 720 }.takeIf { it != -1 } ?: (sizes.size - 1)
+            viewState = viewState.copy(resolutionIndex = targetIndex, quality = if (isFirstSetup) 1 else viewState.quality)
             SettingsManager.saveSettings(context, viewState)
         }
 
@@ -285,25 +266,27 @@ class CamEngine(
         try {
             camera = openCamera(cameraManager, viewState.cameraId, cameraHandler)
         } catch (e: Exception) {
-            Log.e("CamEngine", "Could not open camera ${viewState.cameraId}", e)
+            val fallbackCamera = cameraList.firstOrNull()
+            if (fallbackCamera != null && fallbackCamera.cameraId != viewState.cameraId) {
+                viewState = viewState.copy(cameraId = fallbackCamera.cameraId, resolutionIndex = null, flash = false)
+                SettingsManager.saveSettings(context, viewState)
+                initializeCameraInternal()
+                return
+            }
             return
         }
 
         imageReader = ImageReader.newInstance(resW, resH, camOutPutFormat, 4)
         var targets = listOf(imageReader.surface)
-        if (showLiveSurface) {
-            if (previewSurface?.isValid == true) {
-                targets = targets.plus(previewSurface!!)
-            } else {
-                Log.w("CamEngine", "Preview surface is invalid, continuing without it.")
-                isShowingPreview = false
-            }
+        if (showLiveSurface && previewSurface?.isValid == true) {
+            targets = targets.plus(previewSurface!!)
+        } else {
+            isShowingPreview = false
         }
 
         try {
             session = createCaptureSession(camera, targets, cameraHandler)
         } catch (e: Exception) {
-            Log.e("CamEngine", "Could not create capture session", e)
             return
         }
 
@@ -313,8 +296,8 @@ class CamEngine(
         }
         captureRequestBuilder!!.addTarget(imageReader.surface)
 
-        currentZoomRatio = SettingsManager.loadZoomRatio(context).coerceIn(1.0f, maxZoom)
-        zoomToggleState = (currentZoomRatio > 1.01f)
+        val savedZoom = SettingsManager.loadZoomRatio(context)
+        currentZoomRatio = savedZoom.coerceIn(minZoom, maxZoom)
 
         applyFlash(captureRequestBuilder!!)
         applyZoom(captureRequestBuilder!!)
@@ -330,12 +313,7 @@ class CamEngine(
         sessionCallback = object : CameraCaptureSession.CaptureCallback() {
             override fun onCaptureCompleted(session: CameraCaptureSession, request: CaptureRequest, result: TotalCaptureResult) {
                 super.onCaptureCompleted(session, request, result)
-                var lastImg: android.media.Image? = try {
-                    imageReader.acquireNextImage()
-                } catch (e: Exception) {
-                    Log.w("CamEngine", "Failed to acquire next image", e)
-                    null
-                }
+                var lastImg: android.media.Image? = try { imageReader.acquireNextImage() } catch (e: Exception) { null }
                 if (aquired.get() > 1 && lastImg != null) {
                     lastImg.close()
                     lastImg = null
@@ -370,17 +348,23 @@ class CamEngine(
         updateView()
     }
 
-    fun initializeCamera() {
-        restart()
-    }
+    fun initializeCamera() { restart() }
 
+    // -- méthode de destruction corrigée --
     fun destroy() {
-        stopRunning()
-        cameraThread.quitSafely()
+        isShuttingDown = true // on active le flag de fermeture
+        Log.i("camengine", "destroy called. shutting down...")
+        // on lance toute la procédure de nettoyage sur le thread de la caméra
+        // pour s'assurer que tout est séquentiel et qu'il n'y a pas de race condition.
+        cameraScope.launch {
+            stopRunning()
+            cameraThread.quitSafely()
+            Log.i("camengine", "shutdown complete.")
+        }
     }
 
     fun updateView() {
-        if (!::sizes.isInitialized) return
+        if (!::sizes.isInitialized || isShuttingDown) return
         val resIndex = viewState.resolutionIndex ?: return
         val sensor = cameraList.find { it.cameraId == viewState.cameraId } ?: return
         val parcelableSizes = sizes.map { ParcelableSize(it.width, it.height) }
@@ -391,6 +375,7 @@ class CamEngine(
             resolutions = parcelableSizes,
             resolutionSelected = resIndex,
             currentZoom = currentZoomRatio,
+            minZoom = minZoom,
             maxZoom = maxZoom,
             hasFlash = hasFlash,
             quality = viewState.quality,
@@ -404,36 +389,45 @@ class CamEngine(
     }
 
     fun updateViewQuick(dq: DataQuick) {
+        if (isShuttingDown) return
         val intent = Intent("UpdateFromCameraEngine").setPackage(context.packageName)
         intent.putExtra("dataQuick", dq)
         context.sendBroadcast(intent)
     }
 
     private fun applyZoom(builder: CaptureRequest.Builder) {
-        if (!::activeArraySize.isInitialized) return
-        val zoomWidth = (activeArraySize.width() / currentZoomRatio).toInt()
-        val zoomHeight = (activeArraySize.height() / currentZoomRatio).toInt()
-        val centerX = activeArraySize.width() / 2
-        val centerY = activeArraySize.height() / 2
-        val cropRect = Rect(centerX - zoomWidth / 2, centerY - zoomHeight / 2, centerX + zoomWidth / 2, centerY + zoomHeight / 2)
-        builder.set(CaptureRequest.SCALER_CROP_REGION, cropRect)
+        if (useZoomRatioApi && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, currentZoomRatio)
+        } else {
+            if (!::activeArraySize.isInitialized) return
+            val legacyZoom = currentZoomRatio.coerceAtLeast(1.0f)
+
+            val zoomWidth = (activeArraySize.width() / legacyZoom).toInt()
+            val zoomHeight = (activeArraySize.height() / legacyZoom).toInt()
+            val centerX = activeArraySize.width() / 2
+            val centerY = activeArraySize.height() / 2
+            val cropRect = Rect(centerX - zoomWidth / 2, centerY - zoomHeight / 2, centerX + zoomWidth / 2, centerY + zoomHeight / 2)
+            builder.set(CaptureRequest.SCALER_CROP_REGION, cropRect)
+        }
     }
 
     fun scaleZoom(scaleFactor: Float) {
+        if (isShuttingDown) return
         setZoom(currentZoomRatio * scaleFactor)
     }
 
     fun setZoomRatio(ratio: Float) {
-        if (!::activeArraySize.isInitialized) return
-        setZoom(1.0f + (maxZoom - 1.0f) * ratio.coerceIn(0.0f, 1.0f))
+        if (isShuttingDown) return
+        val target = minZoom + (maxZoom - minZoom) * ratio.coerceIn(0.0f, 1.0f)
+        setZoom(target)
     }
 
     private fun setZoom(zoomRatio: Float) {
-        if (session == null || captureRequestBuilder == null || !::camera.isInitialized) return
-        val newZoom = zoomRatio.coerceIn(1.0f, maxZoom)
+        if (session == null || captureRequestBuilder == null || !::camera.isInitialized || isShuttingDown) return
+        val newZoom = zoomRatio.coerceIn(minZoom, maxZoom)
         if (newZoom == currentZoomRatio) return
         currentZoomRatio = newZoom
-        zoomToggleState = (currentZoomRatio > 1.01f)
+
         applyZoom(captureRequestBuilder!!)
         try {
             session?.setRepeatingRequest(captureRequestBuilder!!.build(), sessionCallback!!, cameraHandler)
@@ -442,22 +436,24 @@ class CamEngine(
             }
             updateView()
         } catch (e: Exception) {
-            Log.e("CamEngine", "Failed to update zoom", e)
+            // ignorer l'erreur si la session est déjà fermée.
         }
     }
 
     private fun getZoomStep(): Float {
-        return (maxZoom - 1.0f) * 0.05f
+        return (maxZoom - minZoom) * 0.10f
     }
 
     fun stepZoomIn() {
+        if (isShuttingDown) return
         val step = getZoomStep()
-        animateZoom((currentZoomRatio + step).coerceIn(1.0f, maxZoom))
+        animateZoom((currentZoomRatio + step).coerceIn(minZoom, maxZoom))
     }
 
     fun stepZoomOut() {
+        if (isShuttingDown) return
         val step = getZoomStep()
-        animateZoom((currentZoomRatio - step).coerceIn(1.0f, maxZoom))
+        animateZoom((currentZoomRatio - step).coerceIn(minZoom, maxZoom))
     }
 
     private fun applyFlash(builder: CaptureRequest.Builder) {
@@ -506,7 +502,7 @@ class CamEngine(
     }
 
     fun updateRepeatingRequest() {
-        if (session == null || captureRequestBuilder == null || !::camera.isInitialized) return
+        if (session == null || captureRequestBuilder == null || !::camera.isInitialized || isShuttingDown) return
         applyFlash(captureRequestBuilder!!)
         applyNoiseReduction(captureRequestBuilder!!)
         applyAntiFlicker(captureRequestBuilder!!)
@@ -514,48 +510,56 @@ class CamEngine(
         try {
             session?.setRepeatingRequest(captureRequestBuilder!!.build(), sessionCallback!!, cameraHandler)
         } catch (e: Exception) {
-            Log.e("CamEngine", "Failed 'light' update", e)
+            // ignorer
         }
     }
 
     fun setTargetFps(fps: Int) {
-        if (fps == this.targetFps) return
+        if (fps == this.targetFps || isShuttingDown) return
         this.targetFps = fps
         SettingsManager.saveTargetFps(context, fps)
         restart()
     }
 
     fun setAntiFlickerMode(mode: Int) {
-        if (mode == this.currentAntiFlickerMode) return
+        if (mode == this.currentAntiFlickerMode || isShuttingDown) return
         this.currentAntiFlickerMode = mode
         SettingsManager.saveAntiFlickerMode(context, mode)
         updateRepeatingRequest()
     }
 
     fun setNoiseReductionMode(mode: Int) {
-        if (mode == this.currentNoiseReductionMode) return
+        if (mode == this.currentNoiseReductionMode || isShuttingDown) return
         this.currentNoiseReductionMode = mode
         SettingsManager.saveNoiseReductionMode(context, mode)
         updateRepeatingRequest()
     }
 
     fun setStabilizationOff(isOff: Boolean) {
-        if (isOff == this.isStabilizationOff) return
+        if (isOff == this.isStabilizationOff || isShuttingDown) return
         this.isStabilizationOff = isOff
         SettingsManager.saveStabilizationOff(context, isOff)
         restart()
     }
 
     fun switchToNextCamera() {
+        if (isShuttingDown) return
         val currentIndex = cameraList.indexOfFirst { it.cameraId == viewState.cameraId }
-        val nextCameraId = cameraList[(currentIndex + 1) % cameraList.size].cameraId
-        viewState = viewState.copy(cameraId = nextCameraId, flash = false, resolutionIndex = null)
+        if (currentIndex == -1 && cameraList.isNotEmpty()) {
+            viewState = viewState.copy(cameraId = cameraList[0].cameraId, flash = false, resolutionIndex = null)
+        } else {
+            val nextCameraId = cameraList[(currentIndex + 1) % cameraList.size].cameraId
+            viewState = viewState.copy(cameraId = nextCameraId, flash = false, resolutionIndex = null)
+        }
+
+        currentZoomRatio = 1.0f
+        SettingsManager.saveZoomRatio(context, 1.0f)
         SettingsManager.saveSettings(context, viewState)
         restart()
     }
 
     fun toggleFlash() {
-        if (session == null || !hasFlash) return
+        if (session == null || !hasFlash || isShuttingDown) return
         val newFlashState = !viewState.flash
         viewState = viewState.copy(flash = newFlashState)
         SettingsManager.saveSettings(context, viewState)
@@ -564,7 +568,10 @@ class CamEngine(
     }
 
     fun toggleZoom() {
-        val newZoom = if (zoomToggleState) 1.0f else 2.0f.coerceAtMost(maxZoom)
+        if (isShuttingDown) return
+        val newZoom = if (currentZoomRatio < 0.9f) 1.0f
+        else if (currentZoomRatio > 1.1f) 1.0f
+        else 2.0f.coerceAtMost(maxZoom)
         animateZoom(newZoom)
     }
 
@@ -574,6 +581,7 @@ class CamEngine(
     }
 
     private fun animateZoom(targetZoom: Float) {
+        if (isShuttingDown) return
         zoomAnimatorJob?.cancel()
 
         if (currentSmoothingDelay == 0) {
@@ -586,14 +594,13 @@ class CamEngine(
             val delayMs = currentSmoothingDelay.toLong()
 
             for (i in 1..zoomAnimationSteps) {
+                if (!isActive) break // sortir si le job est annulé
                 val progress = i.toFloat() / zoomAnimationSteps.toFloat()
                 val newZoom = startZoom + (targetZoom - startZoom) * progress
-
                 setZoom(newZoom)
-
                 delay(delayMs)
             }
-            setZoom(targetZoom)
+            if (isActive) setZoom(targetZoom)
         }
     }
 
@@ -607,6 +614,7 @@ class CamEngine(
             val resolutions: List<ParcelableSize>,
             val resolutionSelected: Int,
             val currentZoom: Float,
+            val minZoom: Float,
             val maxZoom: Float,
             val hasFlash: Boolean,
             val quality: Int,

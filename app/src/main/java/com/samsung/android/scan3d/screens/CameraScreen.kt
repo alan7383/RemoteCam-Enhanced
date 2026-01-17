@@ -17,7 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner // Correct, non-deprecated import
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.samsung.android.scan3d.CameraActivity
 import com.samsung.android.scan3d.R
 import com.samsung.android.scan3d.ViewState
@@ -38,7 +38,6 @@ fun CameraScreen(
     val haptics = LocalHapticFeedback.current
 
     val cameraManager = remember { context.getSystemService(Context.CAMERA_SERVICE) as CameraManager }
-    // Initialize defaultCameraId directly to avoid an unused 'cameraList' variable.
     val defaultCameraId = remember { Selector.enumerateCameras(cameraManager).firstOrNull()?.cameraId ?: "0" }
 
     val initialViewState = remember {
@@ -105,8 +104,6 @@ fun CameraScreen(
                 }
 
                 val extras = intent.extras ?: return
-                // Using the modern, type-safe getParcelable API directly.
-                // This is safe because minSdkVersion is 33 or higher.
                 quickData = extras.getParcelable("dataQuick", CamEngine.Companion.DataQuick::class.java)
                 val data = extras.getParcelable("data", CamEngine.Companion.Data::class.java)
 
@@ -147,8 +144,8 @@ fun CameraScreen(
 
                     if (stateChanged) viewState = newViewState
 
-                    if (d.maxZoom > 1.0f) {
-                        val ratio = (d.currentZoom - 1.0f) / (d.maxZoom - 1.0f)
+                    if (d.maxZoom > d.minZoom) {
+                        val ratio = (d.currentZoom - d.minZoom) / (d.maxZoom - d.minZoom)
                         zoomSliderPosition = ratio.coerceIn(0.0f, 1.0f)
                     } else {
                         zoomSliderPosition = 0.0f
@@ -214,6 +211,15 @@ fun CameraScreen(
             camData?.sensors?.getOrNull(index)?.let { sensor ->
                 val newCamId = sensor.cameraId
                 val oldCamId = viewState.cameraId
+
+                // --- FIX: RESET ZOOM ON CAMERA CHANGE ---
+                if (oldCamId != newCamId) {
+                    zoomSliderPosition = 0.0f
+                    // On force la sauvegarde du zoom à 1.0f pour que le nouveau moteur charge cette valeur
+                    SettingsManager.saveZoomRatio(context, 1.0f)
+                }
+                // --- END FIX ---
+
                 sendViewState(
                     viewState.copy(
                         cameraId = newCamId,
@@ -224,7 +230,6 @@ fun CameraScreen(
             }
         },
         onResolutionSelected = { index ->
-            // Simplified check to avoid unused 'let' lambda variable.
             if (camData?.resolutions?.indices?.contains(index) == true) {
                 sendViewState(viewState.copy(resolutionIndex = index))
             }
@@ -236,11 +241,11 @@ fun CameraScreen(
         },
         onZoomScaleChanged = { scaleFactor ->
             camData?.let { data ->
-                if (data.maxZoom > 1.0f) {
+                if (data.maxZoom > data.minZoom) {
                     val currentZoom = data.currentZoom
-                    val maxZoom = data.maxZoom
-                    val newZoom = (currentZoom * scaleFactor).coerceIn(1.0f, maxZoom)
-                    val newRatio = (newZoom - 1.0f) / (maxZoom - 1.0f)
+                    val newZoom = (currentZoom * scaleFactor).coerceIn(data.minZoom, data.maxZoom)
+
+                    val newRatio = (newZoom - data.minZoom) / (data.maxZoom - data.minZoom)
                     zoomSliderPosition = newRatio.coerceIn(0.0f, 1.0f)
                 }
             }

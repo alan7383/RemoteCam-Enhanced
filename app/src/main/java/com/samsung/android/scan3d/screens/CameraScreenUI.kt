@@ -276,7 +276,8 @@ fun CameraScreenUI(
                                 onSelected = { index -> onQualitySelected(QUALITIES[index]) }
                             )
 
-                            if (camData.maxZoom > 1.0f) {
+                            // Mise à jour pour supporter le minZoom (0.5x etc)
+                            if (camData.maxZoom > camData.minZoom) {
                                 Spacer(Modifier.height(8.dp))
                                 Text(
                                     text = "Zoom: ${"%.1f".format(camData.currentZoom)}x",
@@ -437,6 +438,7 @@ fun CameraScreenPreview() {
         ),
         resolutionSelected = 0,
         currentZoom = 2.5f,
+        minZoom = 1.0f, // Ajouté pour corriger l'erreur de compilation
         maxZoom = 8.0f,
         hasFlash = true,
         quality = 80,
