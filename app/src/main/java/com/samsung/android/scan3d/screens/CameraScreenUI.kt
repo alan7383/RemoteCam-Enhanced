@@ -9,6 +9,12 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.Surface
 import android.view.TextureView
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -16,33 +22,74 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.ZoomIn
-import androidx.compose.material.icons.filled.ZoomOut
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.samsung.android.scan3d.R
 import com.samsung.android.scan3d.ViewState
-import com.samsung.android.scan3d.fragments.AnimatedSystemSwitch
+import com.samsung.android.scan3d.fragments.SettingsGroup
+import com.samsung.android.scan3d.fragments.SettingsGroupTitle
+import com.samsung.android.scan3d.fragments.SettingsItem
+import com.samsung.android.scan3d.fragments.getSettingsShape
 import com.samsung.android.scan3d.serv.CamEngine
-import com.samsung.android.scan3d.serv.CamEngine.Companion.ParcelableSize
-import com.samsung.android.scan3d.ui.theme.RemoteCamM3Theme
-import com.samsung.android.scan3d.util.Selector
-import androidx.compose.material3.ExperimentalMaterial3Api
 
 val QUALITIES = listOf(1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+
+@Composable
+fun SettingsIntegerSliderItem(
+    shape: Shape,
+    title: String,
+    icon: ImageVector,
+    sliderValue: Int,
+    valueRange: ClosedFloatingPointRange<Float>,
+    steps: Int,
+    onValueChange: (Int) -> Unit
+) {
+    Card(
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Spacer(modifier = Modifier.width(20.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = "$sliderValue",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.Remove, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                Slider(
+                    value = sliderValue.toFloat(),
+                    onValueChange = { onValueChange(it.toInt()) },
+                    valueRange = valueRange,
+                    steps = steps,
+                    modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                )
+                Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            }
+        }
+    }
+}
 
 @SuppressLint("ClickableViewAccessibility")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,6 +108,7 @@ fun CameraScreenUI(
     onPreviewToggled: (Boolean) -> Unit,
     onStreamToggled: (Boolean) -> Unit,
     onFlashToggled: (Boolean) -> Unit,
+    onFlashLevelChanged: (Int) -> Unit,
     onSensorSelected: (Int) -> Unit,
     onResolutionSelected: (Int) -> Unit,
     onQualitySelected: (Int) -> Unit,
@@ -70,139 +118,104 @@ fun CameraScreenUI(
     onSettingsClicked: () -> Unit,
     onDoubleTapped: () -> Unit
 ) {
-
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.app_name), fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground
                 ),
                 actions = {
                     Text(
                         text = "${quickData?.ms ?: 0}ms / ${quickData?.rateKbs ?: 0}kB/s",
-                        modifier = Modifier.padding(end = 8.dp),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer,
-                        style = MaterialTheme.typography.bodyMedium
+                        modifier = Modifier.padding(end = 12.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold
                     )
-                    IconButton(onClick = onSettingsClicked) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.cam_settings),
-                            tint = MaterialTheme.colorScheme.onPrimaryContainer
-                        )
+                    FilledTonalIconButton(onClick = onSettingsClicked) {
+                        Icon(Icons.Rounded.Settings, null)
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
             )
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = onStopClicked,
-                text = { Text(stringResource(R.string.cam_stop)) },
-                icon = { Icon(Icons.Default.Videocam, contentDescription = stringResource(R.string.cam_stop)) },
+                text = { Text(stringResource(R.string.cam_stop), fontWeight = FontWeight.Bold) },
+                icon = { Icon(Icons.Rounded.Videocam, null) },
                 containerColor = MaterialTheme.colorScheme.errorContainer,
-                contentColor = MaterialTheme.colorScheme.onErrorContainer
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = RoundedCornerShape(16.dp)
             )
-        }
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier = Modifier.fillMaxSize().padding(paddingValues)
         ) {
-
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
+                    .clip(RoundedCornerShape(24.dp))
                     .background(Color.Black),
                 contentAlignment = Alignment.Center
             ) {
                 AndroidView(
                     factory = { context ->
-
-                        val scaleGestureDetector = ScaleGestureDetector(context,
-                            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-                                override fun onScale(detector: ScaleGestureDetector): Boolean {
-                                    onZoomScaleChanged(detector.scaleFactor)
-                                    return true
-                                }
-                            }
-                        )
-
-                        val gestureDetector = GestureDetector(
-                            context,
-                            object : GestureDetector.SimpleOnGestureListener() {
-                                override fun onDoubleTap(e: MotionEvent): Boolean {
-                                    onDoubleTapped()
-                                    return true
-                                }
-
-                                override fun onSingleTapUp(e: MotionEvent): Boolean {
-                                    textureView.performClick()
-                                    return true
-                                }
-                            }
-                        )
-
+                        val scaleGestureDetector = ScaleGestureDetector(context, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                            override fun onScale(d: ScaleGestureDetector): Boolean { onZoomScaleChanged(d.scaleFactor); return true }
+                        })
+                        val gestureDetector = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {
+                            override fun onDoubleTap(e: MotionEvent): Boolean { onDoubleTapped(); return true }
+                            override fun onSingleTapUp(e: MotionEvent): Boolean { textureView.performClick(); return true }
+                        })
                         textureView.apply {
                             surfaceTextureListener = object : TextureView.SurfaceTextureListener {
-
                                 private fun configureTransform(viewWidth: Int, viewHeight: Int) {
+                                    val bufferSize = camData?.resolutions?.getOrNull(viewState.resolutionIndex ?: 0)
                                     val orientation = camData?.sensorOrientation ?: 90
-                                    if (camData == null || viewWidth == 0 || viewHeight == 0) {
-                                        return
-                                    }
+
+                                    if (bufferSize == null || viewWidth == 0 || viewHeight == 0) return
 
                                     val matrix = Matrix()
+                                    val centerX = viewWidth / 2f
+                                    val centerY = viewHeight / 2f
+
                                     val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
-                                    val centerX = viewRect.centerX()
-                                    val centerY = viewRect.centerY()
+                                    val bufferRect = RectF(0f, 0f, bufferSize.height.toFloat(), bufferSize.width.toFloat())
 
-                                    val bufferWidth: Int
-                                    val bufferHeight: Int
-                                    camData.resolutions.getOrNull(viewState.resolutionIndex ?: 0)?.let {
-                                        bufferWidth = it.width
-                                        bufferHeight = it.height
-                                    } ?: return
+                                    bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY())
 
-                                    val logicalBufferWidth: Int
-                                    val logicalBufferHeight: Int
-                                    if (orientation == 90 || orientation == 270) {
-                                        logicalBufferWidth = bufferHeight // 1080
-                                        logicalBufferHeight = bufferWidth  // 1920
-                                    } else {
-                                        logicalBufferWidth = bufferWidth
-                                        logicalBufferHeight = bufferHeight
-                                    }
+                                    matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL)
 
-                                    val scale: Float
-                                    val scaleX = viewWidth.toFloat() / logicalBufferWidth.toFloat()
-                                    val scaleY = viewHeight.toFloat() / logicalBufferHeight.toFloat()
-
-                                    scale = maxOf(scaleX, scaleY)
+                                    val scale = maxOf(
+                                        viewHeight.toFloat() / bufferSize.width,
+                                        viewWidth.toFloat() / bufferSize.height
+                                    )
 
                                     matrix.postScale(scale, scale, centerX, centerY)
 
                                     if (orientation == 90 || orientation == 270) {
                                         matrix.postRotate((orientation - 90).toFloat(), centerX, centerY)
-                                    } else if (orientation == 180) {
-                                        matrix.postRotate(180f, centerX, centerY)
+                                    } else if (orientation == 0) {
+                                        matrix.postRotate(0f, centerX, centerY)
                                     }
 
                                     textureView.setTransform(matrix)
                                 }
 
-
-                                override fun onSurfaceTextureAvailable(st: SurfaceTexture, width: Int, height: Int) {
-                                    configureTransform(width, height)
-                                    val surface = Surface(st)
-                                    onSurfaceAvailable(surface)
+                                override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
+                                    configureTransform(w, h)
+                                    onSurfaceAvailable(Surface(st))
                                 }
 
-                                override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, width: Int, height: Int) {
-                                    configureTransform(width, height)
+                                override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
+                                    configureTransform(w, h)
                                 }
 
                                 override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
@@ -212,207 +225,111 @@ fun CameraScreenUI(
 
                                 override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
                             }
-
-                            setOnClickListener { }
-                            setOnTouchListener { _, event ->
-                                scaleGestureDetector.onTouchEvent(event)
-                                gestureDetector.onTouchEvent(event)
-                                true
-                            }
+                            setOnTouchListener { _, event -> scaleGestureDetector.onTouchEvent(event); gestureDetector.onTouchEvent(event); true }
                         }
                     },
                 )
             }
 
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
+                modifier = Modifier.weight(1.2f).fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(rememberScrollState())
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 16.dp, bottom = 100.dp),
+                    verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    ControlGroup(title = stringResource(R.string.cam_controls)) {
-                        ControlRow(label = stringResource(R.string.cam_local_preview)) {
-                            AnimatedSystemSwitch(checked = viewState.preview, onCheckedChange = onPreviewToggled)
-                        }
-                        ControlRow(label = stringResource(R.string.cam_mjpeg_stream)) {
-                            AnimatedSystemSwitch(checked = viewState.stream, onCheckedChange = onStreamToggled)
-                        }
-                        if (camData?.hasFlash == true) {
-                            ControlRow(label = stringResource(R.string.cam_flash)) {
-                                AnimatedSystemSwitch(
-                                    checked = viewState.flash,
-                                    onCheckedChange = onFlashToggled,
+                    val maxFlashLevel = camData?.maxFlashLevel ?: 1
+                    val hasFlash = camData?.hasFlash == true
+                    val showIntensitySlider = hasFlash && viewState.flash && maxFlashLevel > 1
+
+                    val flashToggleIndex = 2
+
+                    Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                        SettingsGroupTitle(stringResource(R.string.cam_controls))
+
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            SettingsItem(
+                                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                                title = stringResource(R.string.cam_local_preview),
+                                icon = Icons.Rounded.Visibility,
+                                hasSwitch = true,
+                                switchState = viewState.preview,
+                                onSwitchChange = onPreviewToggled
+                            )
+
+                            SettingsItem(
+                                shape = RoundedCornerShape(4.dp),
+                                title = stringResource(R.string.cam_mjpeg_stream),
+                                icon = Icons.Rounded.CellTower,
+                                hasSwitch = true,
+                                switchState = viewState.stream,
+                                onSwitchChange = onStreamToggled
+                            )
+
+                            if (hasFlash) {
+                                val flashToggleBottomRadius by animateDpAsState(
+                                    targetValue = if (showIntensitySlider) 4.dp else 24.dp,
+                                    label = "FlashToggleCornerAnimation"
+                                )
+
+                                SettingsItem(
+                                    shape = RoundedCornerShape(
+                                        topStart = 4.dp,
+                                        topEnd = 4.dp,
+                                        bottomStart = flashToggleBottomRadius,
+                                        bottomEnd = flashToggleBottomRadius
+                                    ),
+                                    title = stringResource(R.string.cam_flash),
+                                    icon = Icons.Rounded.FlashOn,
+                                    hasSwitch = true,
+                                    switchState = viewState.flash,
+                                    onSwitchChange = onFlashToggled
+                                )
+                            }
+
+                            AnimatedVisibility(
+                                visible = showIntensitySlider,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                val currentLevel = if (viewState.flashLevel > 0) viewState.flashLevel else maxFlashLevel
+                                SettingsIntegerSliderItem(
+                                    shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp),
+                                    title = stringResource(R.string.cam_flash_level),
+                                    icon = Icons.Rounded.Tungsten,
+                                    sliderValue = currentLevel,
+                                    valueRange = 1f..(maxFlashLevel.toFloat()),
+                                    steps = if (maxFlashLevel > 2) maxFlashLevel - 2 else 0,
+                                    onValueChange = onFlashLevelChanged
                                 )
                             }
                         }
                     }
 
                     if (camData != null && viewState.resolutionIndex != null) {
-                        ControlGroup(title = stringResource(R.string.cam_parameters)) {
-                            DropdownControl(
-                                label = stringResource(R.string.cam_sensor),
-                                options = camData.sensors.map { it.title },
-                                selectedIndex = camData.sensors.indexOfFirst { it.cameraId == viewState.cameraId },
-                                onSelected = onSensorSelected
-                            )
-
-                            DropdownControl(
-                                label = stringResource(R.string.cam_resolution),
-                                options = camData.resolutions.map { it.toString() },
-                                selectedIndex = viewState.resolutionIndex!!,
-                                onSelected = onResolutionSelected
-                            )
-
-                            DropdownControl(
-                                label = stringResource(R.string.cam_quality),
-                                options = QUALITIES.map { "$it%" },
-                                selectedIndex = QUALITIES.indexOf(viewState.quality),
-                                onSelected = { index -> onQualitySelected(QUALITIES[index]) }
-                            )
-
-                            if (camData.maxZoom > 1.0f) {
-                                Spacer(Modifier.height(8.dp))
-                                Text(
-                                    text = "Zoom: ${"%.1f".format(camData.currentZoom)}x",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(Icons.Default.ZoomOut, null, modifier = Modifier.padding(end = 8.dp))
-                                    Slider(
-                                        value = zoomSliderPosition,
-                                        onValueChange = onZoomRatioChanged,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Icon(Icons.Default.ZoomIn, null, modifier = Modifier.padding(start = 8.dp))
+                        val hasZoom = camData.maxZoom > camData.minZoom
+                        SettingsGroup(
+                            title = stringResource(R.string.cam_parameters),
+                            items = listOf(
+                                { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_sensor), Icons.Rounded.CameraAlt, camData.sensors.map { it.title }, camData.sensors.indexOfFirst { it.cameraId == viewState.cameraId }, onSensorSelected) },
+                                { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_resolution), Icons.Rounded.PhotoSizeSelectActual, camData.resolutions.map { it.toString() }, viewState.resolutionIndex!!, onResolutionSelected) },
+                                { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_quality), Icons.Rounded.HighQuality, QUALITIES.map { "$it%" }, QUALITIES.indexOf(viewState.quality), { onQualitySelected(QUALITIES[it]) }) },
+                                { shape ->
+                                    if (hasZoom) {
+                                        SettingsSliderItem(shape, "Zoom", Icons.Rounded.ZoomIn, zoomSliderPosition, camData.currentZoom, onZoomRatioChanged)
+                                    }
                                 }
-                            }
-                        }
-                    } else {
-                        CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-                    }
-
-                    ControlGroup(title = stringResource(R.string.cam_information)) {
-                        Text(
-                            text = localIp,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onIpClicked(localIp) }
-                                .padding(vertical = 8.dp)
-                        )
-
-                        val uriHandler = LocalUriHandler.current
-                        val githubUrl = "https://github.com/alan7383/RemoteCam-Enhanced"
-                        Row(
-                            modifier = Modifier.clickable { uriHandler.openUri(githubUrl) },
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(Icons.Default.Link, contentDescription = "Lien", modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                text = githubUrl,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.primary
                             )
-                        }
+                        )
                     }
-                }
-            }
-        }
-    }
-}
 
-
-@Composable
-fun ControlGroup(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-            HorizontalDivider(modifier = Modifier.padding(bottom = 12.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                content()
-            }
-        }
-    }
-}
-
-@Composable
-fun ControlRow(label: String, content: @Composable () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge)
-        content()
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun DropdownControl(
-    label: String,
-    options: List<String>,
-    selectedIndex: Int,
-    onSelected: (Int) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-
-        ExposedDropdownMenuBox(
-            expanded = expanded,
-            onExpandedChange = { expanded = !expanded },
-            modifier = Modifier.weight(1f)
-        ) {
-            TextField(
-                value = options.getOrNull(selectedIndex) ?: "",
-                onValueChange = {},
-                readOnly = true,
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
-            )
-
-            ExposedDropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                options.forEachIndexed { index, text ->
-                    DropdownMenuItem(
-                        text = { Text(text) },
-                        onClick = {
-                            onSelected(index)
-                            expanded = false
-                        }
+                    val uriHandler = LocalUriHandler.current
+                    SettingsGroup(
+                        title = stringResource(R.string.cam_information),
+                        items = listOf(
+                            { shape -> SettingsItem(shape, stringResource(R.string.cam_mjpeg_stream), subtitle = localIp, icon = Icons.Rounded.Link, onClick = { onIpClicked(localIp) }) },
+                            { shape -> SettingsItem(shape, "GitHub", subtitle = "github.com/alan7383/RemoteCam-Enhanced", icon = Icons.Rounded.Code, onClick = { uriHandler.openUri("https://github.com/alan7383/RemoteCam-Enhanced") }) }
+                        )
                     )
                 }
             }
@@ -420,60 +337,42 @@ fun DropdownControl(
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(showBackground = true)
 @Composable
-fun CameraScreenPreview() {
-    val fakeSensor1 = Selector.SensorDesc(cameraId = "0", title = "Caméra Arrière", format = 256)
-    val fakeSensor2 = Selector.SensorDesc(cameraId = "1", title = "Caméra Avant", format = 256)
+fun SettingsDropdownItem(shape: Shape, title: String, icon: ImageVector, options: List<String>, selectedIndex: Int, onSelected: (Int) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(shape = shape, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
+        Box {
+            Row(modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).clickable { expanded = true }.padding(horizontal = 20.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(20.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                    Text(options.getOrNull(selectedIndex) ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.Rounded.ArrowDropDown, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, modifier = Modifier.background(MaterialTheme.colorScheme.surfaceContainerHigh)) {
+                options.forEachIndexed { idx, txt -> DropdownMenuItem(text = { Text(txt) }, onClick = { onSelected(idx); expanded = false }) }
+            }
+        }
+    }
+}
 
-    val previewData = CamEngine.Companion.Data(
-        sensors = listOf(fakeSensor1, fakeSensor2),
-        sensorSelected = fakeSensor1,
-        resolutions = listOf(
-            ParcelableSize(1280, 720),
-            ParcelableSize(1920, 1080)
-        ),
-        resolutionSelected = 0,
-        currentZoom = 2.5f,
-        maxZoom = 8.0f,
-        hasFlash = true,
-        quality = 80,
-        flashState = true,
-        sensorOrientation = 90
-    )
-
-    RemoteCamM3Theme {
-        CameraScreenUI(
-            textureView = TextureView(LocalContext.current),
-            camData = previewData,
-            quickData = CamEngine.Companion.DataQuick(16, 1200),
-            viewState = ViewState(
-                preview = true,
-                stream = false,
-                cameraId = "0",
-                resolutionIndex = 0,
-                quality = 80,
-                flash = true
-            ),
-            localIp = "192.168.1.10:8080/cam.mjpeg",
-            zoomSliderPosition = 0.2f,
-            isInputLocked = true,
-            onSurfaceAvailable = {},
-            onSurfaceDestroyed = {},
-            onStopClicked = {},
-            onPreviewToggled = {},
-            onStreamToggled = {},
-            onFlashToggled = {},
-            onSensorSelected = {},
-            onResolutionSelected = {},
-            onQualitySelected = {},
-            onIpClicked = {},
-            onZoomScaleChanged = {},
-            onZoomRatioChanged = {},
-            onSettingsClicked = {},
-            onDoubleTapped = {}
-        )
+@Composable
+fun SettingsSliderItem(shape: Shape, title: String, icon: ImageVector, sliderValue: Float, displayValue: Float, onValueChange: (Float) -> Unit) {
+    Card(shape = shape, colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(icon, null, tint = MaterialTheme.colorScheme.primary); Spacer(Modifier.width(20.dp))
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
+                Spacer(Modifier.weight(1f))
+                Text("${"%.1f".format(displayValue)}x", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.ZoomOut, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+                Slider(value = sliderValue, onValueChange = onValueChange, modifier = Modifier.weight(1f).padding(horizontal = 8.dp))
+                Icon(Icons.Rounded.ZoomIn, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }

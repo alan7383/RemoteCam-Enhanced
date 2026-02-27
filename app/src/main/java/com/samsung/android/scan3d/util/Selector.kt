@@ -4,7 +4,6 @@ import android.annotation.SuppressLint
 import android.graphics.ImageFormat
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
-import android.hardware.camera2.CameraMetadata
 import android.os.Parcelable
 import android.util.Log
 import kotlinx.parcelize.Parcelize
@@ -13,11 +12,9 @@ import kotlin.math.atan
 import kotlin.math.roundToInt
 
 object Selector {
-    /** Helper class used as a data holder for each selectable camera format item */
     @Parcelize
     data class SensorDesc(val title: String, val cameraId: String, val format: Int) : Parcelable
 
-    /** Helper function used to convert a lens orientation enum into a human-readable string */
     private fun lensOrientationString(value: Int) = when (value) {
         CameraCharacteristics.LENS_FACING_BACK -> "Back"
         CameraCharacteristics.LENS_FACING_FRONT -> "Front"
@@ -25,142 +22,62 @@ object Selector {
         else -> "Unknown"
     }
 
-    /** Helper function used to list all compatible cameras and supported pixel formats */
-
-    fun getCapStringAtIndex(index: Int): String {
-        val strings = listOf(
-            "BACKWARD_COMPATIBLE",
-            "MANUAL_SENSOR",
-            "MANUAL_POST_PROCESSING",
-            "RAW",
-            "PRIVATE_REPROCESSING",
-            "READ_SENSOR_SETTINGS",
-            "BURST_CAPTURE",
-            "YUV_REPROCESSING",
-            "DEPTH_OUTPUT",
-            "CONSTRAINED_HIGH_SPEED_VIDEO",
-            "MOTION_TRACKING",
-            "LOGICAL_MULTI_CAMERA",
-            "MONOCHROME",
-            "SECURE_IMAGE_DATA",
-            "SYSTEM_CAMERA",
-            "OFFLINE_PROCESSING",
-            "ULTRA_HIGH_RESOLUTION_SENSOR",
-            "REMOSAIC_REPROCESSING",
-            "DYNAMIC_RANGE_TEN_BIT",
-            "STREAM_USE_CASE",
-            "COLOR_SPACE_PROFILES"
-        )
-
-        if (index in 0 until strings.size) {
-            return strings[index]
-        } else {
-            return "Invalid index"
-        }
-    }
-
     @SuppressLint("InlinedApi")
     fun enumerateCameras(cameraManager: CameraManager): List<SensorDesc> {
         val availableCameras: MutableList<SensorDesc> = mutableListOf()
 
-        // Get list of all compatible cameras
-        val cameraIds = mutableListOf<String>()
-
-        for (i in 0..100) {
-
-            val istr = i.toString()
-            if (!cameraIds.contains(istr)) {
-                cameraIds.add(istr)
-            }
+        val cameraIds = try {
+            cameraManager.cameraIdList.toList()
+        } catch (e: Exception) {
+            Log.e("SELECTOR", "Fatal error getting camera ID list", e)
+            return emptyList()
         }
 
-        val cameraIds2 = mutableListOf<String>()
-        cameraIds.filter {
-
+        // On parcourt TOUTES les caméras que le système nous donne, sans aucun filtre préalable.
+        for (id in cameraIds) {
             try {
-                val characteristics = cameraManager.getCameraCharacteristics(it)
-                val capabilities = characteristics.get(
-                    CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES
+                val characteristics = cameraManager.getCameraCharacteristics(id)
+
+                val orientation = lensOrientationString(
+                    characteristics.get(CameraCharacteristics.LENS_FACING)!!
                 )
 
-                if (capabilities == null) {
-                    false
-                } else if (capabilities.contains(
-                        CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_LOGICAL_MULTI_CAMERA
-                    )
-                ) {
-                    false
-                } else if (capabilities.contains(
-                        CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_BACKWARD_COMPATIBLE
-                    )
-                ) {
-                    true
+                val focalLengths = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+                val apertures = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)
+                val sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
+
+                val title: String
+
+                // On essaie de construire le nom technique. Si des infos manquent, on met un nom de secours.
+                if (focalLengths != null && focalLengths.isNotEmpty() &&
+                    apertures != null && apertures.isNotEmpty() &&
+                    sensorSize != null) {
+
+                    val foaclmm = focalLengths[0]
+                    val foc = ("${foaclmm}mm").padEnd(6, ' ')
+                    val ape = ("f${apertures[0]}").padEnd(4, ' ')
+                    val vfov = ("${(2.0 * (180.0 / Math.PI) * atan(sensorSize.height / (2.0 * foaclmm))).roundToInt()}°").padEnd(4, ' ')
+
+                    title = "vfov:$vfov $foc $ape $orientation"
                 } else {
-                    false
+                    title = "Camera ID: $id ($orientation)"
                 }
 
+                // On ajoute la caméra si on n'a pas déjà une autre avec exactement le même titre.
+                if (!availableCameras.any { it.title == title }) {
+                    availableCameras.add(
+                        SensorDesc(title, id, ImageFormat.JPEG)
+                    )
+                }
 
             } catch (e: Exception) {
-                false
+                // Si on n'arrive pas à lire les infos d'une caméra, on l'ignore silencieusement.
+                // C'est souvent une caméra système ou virtuelle non destinée aux apps tierces.
+                Log.w("SELECTOR", "Could not process camera $id, skipping. Error: ${e.message}")
             }
-        }.forEach { cameraIds2.add(it) }
-
-
-        // Iterate over the list of cameras and return all the compatible ones
-        cameraIds2.forEach { id ->
-
-            Log.i("SELECTOR", "id: " + id)
-            val characteristics = cameraManager.getCameraCharacteristics(id)
-            val orientation = lensOrientationString(
-                characteristics.get(CameraCharacteristics.LENS_FACING)!!
-            )
-
-            // Query the available capabilities and output formats
-            val capabilities = characteristics.get(
-                CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES
-            )!!
-
-            capabilities.forEach { Log.i("CAP", "" + getCapStringAtIndex(it)) }
-
-
-            val outputFormats = characteristics.get(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
-            )!!.outputFormats
-
-            val outputSizes = characteristics.get(
-                CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP
-            )!!.getOutputSizes(ImageFormat.JPEG)
-
-
-            val foaclmm = characteristics.get(
-                CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
-            )!![0]
-            val foc = ("" + foaclmm + "mm").padEnd(6, ' ')
-            val ape = ("f" + characteristics.get(
-                CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES
-            )!![0] + "").padEnd(4, ' ')
-
-            val sensorSize = characteristics.get(
-                CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE
-            )!!
-
-            val vfov =(( 2.0*(180.0 / 3.141592) * atan(sensorSize.height / (2.0 * foaclmm))).roundToInt().toString()+"°").padEnd(4,' ')
-
-            // All cameras *must* support JPEG output so we don't need to check characteristics
-
-            val title=  "vfov:$vfov $foc $ape $orientation"
-            if(!availableCameras.any {it-> it.title==title } ){
-                availableCameras.add(
-                    SensorDesc(
-                        title, id, ImageFormat.JPEG
-                    )
-                )
-            }
-
-
-
         }
 
-        return availableCameras
+        // On trie la liste finale par ID de caméra pour un ordre cohérent.
+        return availableCameras.sortedBy { it.cameraId.toIntOrNull() ?: Int.MAX_VALUE }
     }
 }

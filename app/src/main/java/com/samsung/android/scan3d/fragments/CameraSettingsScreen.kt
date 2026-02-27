@@ -1,13 +1,19 @@
 package com.samsung.android.scan3d.fragments
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.FilterCenterFocus
@@ -17,13 +23,6 @@ import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.TouchApp
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -36,9 +35,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.samsung.android.scan3d.R
 import com.samsung.android.scan3d.util.SettingsManager
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.IconButtonDefaults
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,19 +49,12 @@ fun CameraSettingsScreen(
     val context = LocalContext.current
 
     var showRememberDialog by remember { mutableStateOf(false) }
-    val dismissRememberDialog = { showRememberDialog = false }
     var showFpsDialog by remember { mutableStateOf(false) }
-    val dismissFpsDialog = { showFpsDialog = false }
     var showDoubleTapDialog by remember { mutableStateOf(false) }
-    val dismissDoubleTapDialog = { showDoubleTapDialog = false }
     var showFlickerDialog by remember { mutableStateOf(false) }
-    val dismissFlickerDialog = { showFlickerDialog = false }
     var showNoiseReductionDialog by remember { mutableStateOf(false) }
-    val dismissNoiseReductionDialog = { showNoiseReductionDialog = false }
     var showVolumeActionDialog by remember { mutableStateOf(false) }
-    val dismissVolumeActionDialog = { showVolumeActionDialog = false }
     var showZoomSmoothingDialog by remember { mutableStateOf(false) }
-    val dismissZoomSmoothingDialog = { showZoomSmoothingDialog = false }
 
     var currentSmoothingDelay by remember { mutableIntStateOf(SettingsManager.loadZoomSmoothingDelay(context)) }
     var rememberSettingsEnabled by remember { mutableStateOf(SettingsManager.loadRememberSettings(context)) }
@@ -81,257 +70,206 @@ fun CameraSettingsScreen(
     var currentNoiseReduction by remember { mutableIntStateOf(SettingsManager.loadNoiseReductionMode(context)) }
     var currentVolumeAction by remember { mutableIntStateOf(SettingsManager.loadVolumeAction(context)) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_camera_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    FilledTonalIconButton(
-                        onClick = onBackClicked,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SettingsGroup(title = stringResource(R.string.settings_camera_title)) {
-                SettingsClickableToggleRow(
-                    text = stringResource(R.string.settings_remember_title),
-                    summary = stringResource(R.string.settings_remember_desc),
-                    icon = Icons.Rounded.Memory,
-                    checked = rememberSettingsEnabled,
-                    onCheckedChange = {
-                        rememberSettingsEnabled = it
-                        SettingsManager.saveRememberSettings(context, it)
-                        if (it) {
-                            rememberFlash = true
-                            SettingsManager.saveRememberFlash(context, true)
-                            rememberZoom = true
-                            SettingsManager.saveRememberZoom(context, true)
-                            rememberSensor = true
-                            SettingsManager.saveRememberSensor(context, true)
-                            rememberResolution = true
-                            SettingsManager.saveRememberResolution(context, true)
-                            rememberQuality = true
-                            SettingsManager.saveRememberQuality(context, true)
-                        }
-                    },
-                    onClick = { showRememberDialog = true }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                val fpsSummary = "$currentFps FPS"
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_fps_title),
-                    icon = Icons.Rounded.Speed,
-                    summary = fpsSummary,
-                    onClick = { showFpsDialog = true }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                val doubleTapSummary = when (currentDoubleTap) {
-                    SettingsManager.DOUBLE_TAP_SWITCH_CAM -> stringResource(R.string.settings_double_tap_switch_cam)
-                    SettingsManager.DOUBLE_TAP_TOGGLE_ZOOM -> stringResource(R.string.settings_double_tap_toggle_zoom)
-                    else -> stringResource(R.string.settings_double_tap_off)
-                }
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_double_tap_title),
-                    icon = Icons.Rounded.TouchApp,
-                    summary = doubleTapSummary,
-                    onClick = { showDoubleTapDialog = true }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                SettingsToggleRow(
-                    text = stringResource(R.string.settings_stabilization_title),
-                    icon = Icons.Rounded.FilterCenterFocus,
-                    checked = stabilizationOff,
-                    onCheckedChange = {
-                        stabilizationOff = it
-                        SettingsManager.saveStabilizationOff(context, it)
-                        onSendStabilizationIntent(it)
-                    }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                val flickerSummary = when (currentFlicker) {
-                    SettingsManager.ANTI_FLICKER_50HZ -> stringResource(R.string.settings_flicker_50hz)
-                    SettingsManager.ANTI_FLICKER_60HZ -> stringResource(R.string.settings_flicker_60hz)
-                    SettingsManager.ANTI_FLICKER_OFF -> stringResource(R.string.settings_flicker_off)
-                    else -> stringResource(R.string.settings_flicker_auto)
-                }
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_flicker_title),
-                    icon = Icons.Rounded.Block,
-                    summary = flickerSummary,
-                    onClick = { showFlickerDialog = true }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                val noiseReductionSummary = when (currentNoiseReduction) {
-                    SettingsManager.NR_OFF -> stringResource(R.string.settings_noise_reduction_off)
-                    SettingsManager.NR_LOW -> stringResource(R.string.settings_noise_reduction_low)
-                    SettingsManager.NR_HIGH -> stringResource(R.string.settings_noise_reduction_high)
-                    else -> stringResource(R.string.settings_noise_reduction_auto)
-                }
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_noise_reduction_title),
-                    icon = Icons.Rounded.Grain,
-                    summary = noiseReductionSummary,
-                    onClick = { showNoiseReductionDialog = true }
-                )
-            }
-
-            SettingsGroup(title = stringResource(R.string.settings_controls_title)) {
-                val volumeSummary = when (currentVolumeAction) {
-                    SettingsManager.VOL_ACTION_ZOOM -> stringResource(R.string.settings_volume_action_zoom)
-                    SettingsManager.VOL_ACTION_SWITCH_CAM -> stringResource(R.string.settings_volume_action_switch_cam)
-                    SettingsManager.VOL_ACTION_TOGGLE_FLASH -> stringResource(R.string.settings_volume_action_toggle_flash)
-                    else -> stringResource(R.string.settings_volume_action_off)
-                }
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_volume_action_title),
-                    icon = Icons.AutoMirrored.Rounded.VolumeUp,
-                    summary = volumeSummary,
-                    onClick = { showVolumeActionDialog = true }
-                )
-            }
-
-            SettingsGroup(title = stringResource(R.string.settings_remote_control_title)) {
-                val smoothingSummary = if (currentSmoothingDelay == 0) {
-                    stringResource(R.string.settings_zoom_smoothing_none)
-                } else {
-                    "$currentSmoothingDelay ms"
-                }
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_zoom_smoothing_title),
-                    summary = stringResource(R.string.settings_zoom_smoothing_desc),
-                    icon = Icons.Rounded.Movie,
-                    subSummary = smoothingSummary,
-                    onClick = { showZoomSmoothingDialog = true }
-                )
-            }
-        }
-    }
-
     if (showRememberDialog) {
         RememberSettingsDialog(
-            rememberFlash = rememberFlash,
-            rememberZoom = rememberZoom,
-            rememberSensor = rememberSensor,
-            rememberResolution = rememberResolution,
-            rememberQuality = rememberQuality,
-            onDismiss = dismissRememberDialog,
+            rememberFlash = rememberFlash, rememberZoom = rememberZoom, rememberSensor = rememberSensor, rememberResolution = rememberResolution, rememberQuality = rememberQuality,
+            onDismiss = { showRememberDialog = false },
             onSave = { newFlash, newZoom, newSensor, newRes, newQuality ->
-                rememberFlash = newFlash
-                SettingsManager.saveRememberFlash(context, rememberFlash)
-                rememberZoom = newZoom
-                SettingsManager.saveRememberZoom(context, rememberZoom)
-                rememberSensor = newSensor
-                SettingsManager.saveRememberSensor(context, rememberSensor)
-                rememberResolution = newRes
-                SettingsManager.saveRememberResolution(context, rememberResolution)
-                rememberQuality = newQuality
-                SettingsManager.saveRememberQuality(context, rememberQuality)
-                dismissRememberDialog()
+                rememberFlash = newFlash; SettingsManager.saveRememberFlash(context, newFlash)
+                rememberZoom = newZoom; SettingsManager.saveRememberZoom(context, newZoom)
+                rememberSensor = newSensor; SettingsManager.saveRememberSensor(context, newSensor)
+                rememberResolution = newRes; SettingsManager.saveRememberResolution(context, newRes)
+                rememberQuality = newQuality; SettingsManager.saveRememberQuality(context, newQuality)
+                showRememberDialog = false
             }
         )
     }
 
     if (showFpsDialog) {
-        TargetFpsDialog(
-            currentFps = currentFps,
-            onDismiss = dismissFpsDialog,
-            onFpsSelected = { newFps ->
-                currentFps = newFps
-                SettingsManager.saveTargetFps(context, newFps)
-                onSendFpsIntent(newFps)
-                dismissFpsDialog()
-            }
-        )
+        TargetFpsDialog(currentFps, onDismiss = { showFpsDialog = false }) { newFps ->
+            currentFps = newFps; SettingsManager.saveTargetFps(context, newFps); onSendFpsIntent(newFps)
+        }
     }
 
     if (showDoubleTapDialog) {
-        DoubleTapDialog(
-            currentAction = currentDoubleTap,
-            onDismiss = dismissDoubleTapDialog,
-            onActionSelected = { newAction ->
-                currentDoubleTap = newAction
-                SettingsManager.saveDoubleTapAction(context, newAction)
-                dismissDoubleTapDialog()
-            }
-        )
+        DoubleTapDialog(currentDoubleTap, onDismiss = { showDoubleTapDialog = false }) { newAction ->
+            currentDoubleTap = newAction; SettingsManager.saveDoubleTapAction(context, newAction)
+        }
     }
 
     if (showFlickerDialog) {
-        AntiFlickerDialog(
-            currentMode = currentFlicker,
-            onDismiss = dismissFlickerDialog,
-            onModeSelected = { newMode ->
-                currentFlicker = newMode
-                SettingsManager.saveAntiFlickerMode(context, newMode)
-                onSendAntiFlickerIntent(newMode)
-                dismissFlickerDialog()
-            }
-        )
+        AntiFlickerDialog(currentFlicker, onDismiss = { showFlickerDialog = false }) { newMode ->
+            currentFlicker = newMode; SettingsManager.saveAntiFlickerMode(context, newMode); onSendAntiFlickerIntent(newMode)
+        }
     }
 
     if (showNoiseReductionDialog) {
-        NoiseReductionDialog(
-            currentMode = currentNoiseReduction,
-            onDismiss = dismissNoiseReductionDialog,
-            onModeSelected = { newMode ->
-                currentNoiseReduction = newMode
-                SettingsManager.saveNoiseReductionMode(context, newMode)
-                onSendNoiseReductionIntent(newMode)
-                dismissNoiseReductionDialog()
-            }
-        )
+        NoiseReductionDialog(currentNoiseReduction, onDismiss = { showNoiseReductionDialog = false }) { newMode ->
+            currentNoiseReduction = newMode; SettingsManager.saveNoiseReductionMode(context, newMode); onSendNoiseReductionIntent(newMode)
+        }
     }
 
     if (showVolumeActionDialog) {
-        VolumeActionDialog(
-            currentAction = currentVolumeAction,
-            onDismiss = dismissVolumeActionDialog,
-            onActionSelected = { newAction ->
-                currentVolumeAction = newAction
-                SettingsManager.saveVolumeAction(context, newAction)
-                dismissVolumeActionDialog()
-            }
-        )
+        VolumeActionDialog(currentVolumeAction, onDismiss = { showVolumeActionDialog = false }) { newAction ->
+            currentVolumeAction = newAction; SettingsManager.saveVolumeAction(context, newAction)
+        }
     }
 
     if (showZoomSmoothingDialog) {
-        ZoomSmoothingDialog(
-            currentDelay = currentSmoothingDelay,
-            onDismiss = dismissZoomSmoothingDialog,
-            onDelaySelected = { newDelay ->
-                currentSmoothingDelay = newDelay
-                SettingsManager.saveZoomSmoothingDelay(context, newDelay)
-                onSendZoomSmoothingIntent(newDelay)
-                dismissZoomSmoothingDialog()
+        ZoomSmoothingDialog(currentSmoothingDelay, onDismiss = { showZoomSmoothingDialog = false }) { newDelay ->
+            currentSmoothingDelay = newDelay; SettingsManager.saveZoomSmoothingDelay(context, newDelay); onSendZoomSmoothingIntent(newDelay)
+        }
+    }
+
+    SettingsScaffold(
+        title = stringResource(R.string.settings_camera_title),
+        onBackClick = onBackClicked
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 32.dp)
+        ) {
+            item {
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    SettingsGroupTitle(stringResource(R.string.settings_camera_title))
+
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
+                            title = stringResource(R.string.settings_remember_title),
+                            subtitle = stringResource(R.string.settings_remember_desc),
+                            icon = Icons.Rounded.Memory,
+                            hasSwitch = true,
+                            switchState = rememberSettingsEnabled,
+                            onSwitchChange = {
+                                rememberSettingsEnabled = it
+                                SettingsManager.saveRememberSettings(context, it)
+                                if (it) {
+                                    rememberFlash = true; SettingsManager.saveRememberFlash(context, true)
+                                    rememberZoom = true; SettingsManager.saveRememberZoom(context, true)
+                                    rememberSensor = true; SettingsManager.saveRememberSensor(context, true)
+                                    rememberResolution = true; SettingsManager.saveRememberResolution(context, true)
+                                    rememberQuality = true; SettingsManager.saveRememberQuality(context, true)
+                                }
+                            }
+                        )
+
+                        AnimatedVisibility(
+                            visible = rememberSettingsEnabled,
+                            enter = expandVertically() + fadeIn(),
+                            exit = shrinkVertically() + fadeOut()
+                        ) {
+                            SettingsItem(
+                                shape = RoundedCornerShape(4.dp),
+                                title = stringResource(R.string.settings_remember_dialog_title),
+                                subtitle = null,
+                                icon = Icons.Rounded.Memory,
+                                onClick = { showRememberDialog = true }
+                            )
+                        }
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(4.dp),
+                            title = stringResource(R.string.settings_fps_title),
+                            subtitle = "$currentFps FPS",
+                            icon = Icons.Rounded.Speed,
+                            onClick = { showFpsDialog = true }
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(4.dp),
+                            title = stringResource(R.string.settings_double_tap_title),
+                            subtitle = when (currentDoubleTap) {
+                                SettingsManager.DOUBLE_TAP_SWITCH_CAM -> stringResource(R.string.settings_double_tap_switch_cam)
+                                SettingsManager.DOUBLE_TAP_TOGGLE_ZOOM -> stringResource(R.string.settings_double_tap_toggle_zoom)
+                                else -> stringResource(R.string.settings_double_tap_off)
+                            },
+                            icon = Icons.Rounded.TouchApp,
+                            onClick = { showDoubleTapDialog = true }
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(4.dp),
+                            title = stringResource(R.string.settings_stabilization_title),
+                            subtitle = stringResource(R.string.settings_stabilization_desc),
+                            icon = Icons.Rounded.FilterCenterFocus,
+                            hasSwitch = true,
+                            switchState = stabilizationOff,
+                            onSwitchChange = {
+                                stabilizationOff = it
+                                SettingsManager.saveStabilizationOff(context, it)
+                                onSendStabilizationIntent(it)
+                            }
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(4.dp),
+                            title = stringResource(R.string.settings_flicker_title),
+                            subtitle = when (currentFlicker) {
+                                SettingsManager.ANTI_FLICKER_50HZ -> stringResource(R.string.settings_flicker_50hz)
+                                SettingsManager.ANTI_FLICKER_60HZ -> stringResource(R.string.settings_flicker_60hz)
+                                SettingsManager.ANTI_FLICKER_OFF -> stringResource(R.string.settings_flicker_off)
+                                else -> stringResource(R.string.settings_flicker_auto)
+                            },
+                            icon = Icons.Rounded.Block,
+                            onClick = { showFlickerDialog = true }
+                        )
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp),
+                            title = stringResource(R.string.settings_noise_reduction_title),
+                            subtitle = when (currentNoiseReduction) {
+                                SettingsManager.NR_OFF -> stringResource(R.string.settings_noise_reduction_off)
+                                SettingsManager.NR_LOW -> stringResource(R.string.settings_noise_reduction_low)
+                                SettingsManager.NR_HIGH -> stringResource(R.string.settings_noise_reduction_high)
+                                else -> stringResource(R.string.settings_noise_reduction_auto)
+                            },
+                            icon = Icons.Rounded.Grain,
+                            onClick = { showNoiseReductionDialog = true }
+                        )
+                    }
+                }
             }
-        )
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_controls_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_volume_action_title),
+                                subtitle = when (currentVolumeAction) {
+                                    SettingsManager.VOL_ACTION_ZOOM -> stringResource(R.string.settings_volume_action_zoom)
+                                    SettingsManager.VOL_ACTION_SWITCH_CAM -> stringResource(R.string.settings_volume_action_switch_cam)
+                                    SettingsManager.VOL_ACTION_TOGGLE_FLASH -> stringResource(R.string.settings_volume_action_toggle_flash)
+                                    else -> stringResource(R.string.settings_volume_action_off)
+                                },
+                                icon = Icons.AutoMirrored.Rounded.VolumeUp,
+                                onClick = { showVolumeActionDialog = true }
+                            )
+                        }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_remote_control_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_zoom_smoothing_title),
+                                subtitle = if (currentSmoothingDelay == 0) stringResource(R.string.settings_zoom_smoothing_none) else "$currentSmoothingDelay ms",
+                                icon = Icons.Rounded.Movie,
+                                onClick = { showZoomSmoothingDialog = true }
+                            )
+                        }
+                    )
+                )
+            }
+        }
     }
 }

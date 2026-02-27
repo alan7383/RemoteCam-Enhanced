@@ -1,14 +1,10 @@
 package com.samsung.android.scan3d.screens
 
 import androidx.appcompat.app.AppCompatDelegate
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material.icons.rounded.*
@@ -25,12 +21,7 @@ import com.samsung.android.scan3d.ui.theme.updateAppMonet
 import com.samsung.android.scan3d.ui.theme.updateAppTheme
 import com.samsung.android.scan3d.util.SettingsManager
 import com.samsung.android.scan3d.CameraActivity
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.material3.FilledTonalIconButton
-import androidx.compose.material3.IconButtonDefaults
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBackClicked: () -> Unit,
@@ -42,138 +33,12 @@ fun SettingsScreen(
 
     var showAboutDialog by remember { mutableStateOf(false) }
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     var currentTheme: Int by remember { mutableIntStateOf(SettingsManager.loadThemeMode(context)) }
     var dynamicColor: Boolean by remember { mutableStateOf(SettingsManager.loadMonetEnabled(context)) }
     var keepScreenOn: Boolean by remember { mutableStateOf(SettingsManager.loadKeepScreenOn(context)) }
     var currentLanguage: String by remember { mutableStateOf(SettingsManager.loadLanguage(context)) }
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.settings_title), fontWeight = FontWeight.Bold) },
-                navigationIcon = {
-                    FilledTonalIconButton(
-                        onClick = onBackClicked,
-                        colors = IconButtonDefaults.filledTonalIconButtonColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    ) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.settings_back))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            SettingsGroup(title = stringResource(R.string.settings_appearance)) {
-                ThemeOptionRow(
-                    text = stringResource(R.string.settings_theme_auto),
-                    icon = Icons.Rounded.SettingsSystemDaydream,
-                    selected = currentTheme == SettingsManager.THEME_AUTO,
-                    onClick = {
-                        if (currentTheme != SettingsManager.THEME_AUTO) {
-                            currentTheme = SettingsManager.THEME_AUTO
-                            updateAppTheme(context, SettingsManager.THEME_AUTO)
-                        }
-                    }
-                )
-                ThemeOptionRow(
-                    text = stringResource(R.string.settings_theme_light),
-                    icon = Icons.Default.WbSunny,
-                    selected = currentTheme == SettingsManager.THEME_LIGHT,
-                    onClick = {
-                        if (currentTheme != SettingsManager.THEME_LIGHT) {
-                            currentTheme = SettingsManager.THEME_LIGHT
-                            updateAppTheme(context, SettingsManager.THEME_LIGHT)
-                        }
-                    }
-                )
-                ThemeOptionRow(
-                    text = stringResource(R.string.settings_theme_dark),
-                    icon = Icons.Rounded.DarkMode,
-                    selected = currentTheme == SettingsManager.THEME_DARK,
-                    onClick = {
-                        if (currentTheme != SettingsManager.THEME_DARK) {
-                            currentTheme = SettingsManager.THEME_DARK
-                            updateAppTheme(context, SettingsManager.THEME_DARK)
-                        }
-                    }
-                )
-
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-
-                SettingsToggleRow(
-                    text = stringResource(R.string.settings_monet),
-                    icon = Icons.Rounded.Palette,
-                    checked = dynamicColor,
-                    onCheckedChange = {
-                        dynamicColor = it
-                        updateAppMonet(context, it)
-                    }
-                )
-            }
-
-            SettingsGroup(title = stringResource(R.string.settings_behavior_title)) {
-                SettingsToggleRow(
-                    text = stringResource(R.string.settings_keep_screen_on),
-                    icon = Icons.Rounded.Visibility,
-                    checked = keepScreenOn,
-                    onCheckedChange = {
-                        keepScreenOn = it
-                        SettingsManager.saveKeepScreenOn(context, it)
-                    }
-                )
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-                val langSummary = when (currentLanguage) {
-                    SettingsManager.LANG_EN -> stringResource(R.string.settings_lang_en)
-                    SettingsManager.LANG_FR -> stringResource(R.string.settings_lang_fr)
-                    SettingsManager.LANG_HU -> stringResource(R.string.settings_lang_hu)
-                    SettingsManager.LANG_PT -> stringResource(R.string.settings_lang_pt_br)
-                    else -> stringResource(R.string.settings_lang_auto)
-                }
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_language),
-                    icon = Icons.Rounded.Language,
-                    summary = langSummary,
-                    onClick = { showLanguageDialog = true }
-                )
-            }
-
-            SettingsGroup(title = stringResource(R.string.settings_additional_title)) {
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_camera_title),
-                    icon = Icons.Rounded.CameraAlt,
-                    onClick = onNavigateToAdditionalSettings
-                )
-
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_power_title),
-                    icon = Icons.Rounded.Power,
-                    onClick = onNavigateToPowerSettings
-                )
-            }
-
-            SettingsGroup(title = stringResource(R.string.settings_app_title)) {
-                SettingsClickableRow(
-                    text = stringResource(R.string.settings_about_title),
-                    icon = Icons.Default.Info,
-                    onClick = { showAboutDialog = true }
-                )
-            }
-        }
-    }
 
     if (showAboutDialog) {
         AboutDialog(onDismiss = { showAboutDialog = false })
@@ -193,5 +58,144 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+
+    if (showThemeDialog) {
+        val themeOptions = mapOf(
+            SettingsManager.THEME_AUTO to stringResource(R.string.settings_theme_auto),
+            SettingsManager.THEME_LIGHT to stringResource(R.string.settings_theme_light),
+            SettingsManager.THEME_DARK to stringResource(R.string.settings_theme_dark)
+        )
+        SettingsRadioDialog(
+            title = stringResource(R.string.settings_theme),
+            options = themeOptions,
+            selected = currentTheme,
+            onDismiss = { showThemeDialog = false },
+            onSelected = {
+                currentTheme = it
+                updateAppTheme(context, it)
+                showThemeDialog = false
+            }
+        )
+    }
+
+    SettingsScaffold(
+        title = stringResource(R.string.settings_title),
+        onBackClick = onBackClicked
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(top = padding.calculateTopPadding(), bottom = 32.dp)
+        ) {
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_appearance),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_theme),
+                                subtitle = when (currentTheme) {
+                                    SettingsManager.THEME_AUTO -> stringResource(R.string.settings_theme_auto)
+                                    SettingsManager.THEME_LIGHT -> stringResource(R.string.settings_theme_light)
+                                    else -> stringResource(R.string.settings_theme_dark)
+                                },
+                                icon = Icons.Rounded.DarkMode,
+                                onClick = { showThemeDialog = true }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_monet),
+                                icon = Icons.Rounded.Palette,
+                                hasSwitch = true,
+                                switchState = dynamicColor,
+                                onSwitchChange = {
+                                    dynamicColor = it
+                                    updateAppMonet(context, it)
+                                }
+                            )
+                        }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_behavior_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_keep_screen_on),
+                                icon = Icons.Rounded.Visibility,
+                                hasSwitch = true,
+                                switchState = keepScreenOn,
+                                onSwitchChange = {
+                                    keepScreenOn = it
+                                    SettingsManager.saveKeepScreenOn(context, it)
+                                }
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_language),
+                                subtitle = when (currentLanguage) {
+                                    SettingsManager.LANG_EN -> stringResource(R.string.settings_lang_en)
+                                    SettingsManager.LANG_FR -> stringResource(R.string.settings_lang_fr)
+                                    SettingsManager.LANG_HU -> stringResource(R.string.settings_lang_hu)
+                                    SettingsManager.LANG_PT -> stringResource(R.string.settings_lang_pt_br)
+                                    else -> stringResource(R.string.settings_lang_auto)
+                                },
+                                icon = Icons.Rounded.Language,
+                                onClick = { showLanguageDialog = true }
+                            )
+                        }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_additional_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_camera_title),
+                                icon = Icons.Rounded.CameraAlt,
+                                onClick = onNavigateToAdditionalSettings
+                            )
+                        },
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_power_title),
+                                icon = Icons.Rounded.Power,
+                                onClick = onNavigateToPowerSettings
+                            )
+                        }
+                    )
+                )
+            }
+
+            item {
+                SettingsGroup(
+                    title = stringResource(R.string.settings_app_title),
+                    items = listOf(
+                        { shape ->
+                            SettingsItem(
+                                shape = shape,
+                                title = stringResource(R.string.settings_about_title),
+                                icon = Icons.Default.Info,
+                                onClick = { showAboutDialog = true }
+                            )
+                        }
+                    )
+                )
+            }
+        }
     }
 }
