@@ -122,8 +122,10 @@
     <!-- Stream Format -->
     <string name="settings_format_title">Formato de transmissão</string>
     <string name="settings_format_desc">Formato usado para a transmissão HTTP</string>
-    <string name="settings_format_mjpeg">MJPEG (Imagens)</string>
-    <string name="settings_format_h264">H.264 (Vídeo - Eficiente)</string>
+    <string name="settings_format_mjpeg">MJPEG</string>
+    <string name="settings_format_mjpeg_desc">Imagens</string>
+    <string name="settings_format_h264">H.264</string>
+    <string name="settings_format_h264_desc">Vídeo - Eficiente</string>
 
     <!-- ========================== -->
     <!-- SETTINGS - CONTROLS        -->
@@ -218,5 +220,20 @@
     <string name="egg_title_alan">Um pouquinho mais do dev :p</string>
     <string name="egg_message_alan">Olá! Alan aqui ^^\n\nEngraçado que você clicou 7 vezes para chegar aqui!\n\nApenas queria dizer obrigado. Este app é um \'fork\', que significa que eu peguei a base incrível do desenvolvedor original e gastei bastante tempo adicionando minhas próprias melhorias (dias e dias, noites e fins de semanas...).\n\nEspero sinceramente que você ache isso útil!\n\nObrigado por usar!\n- Alan</string>
     <string name="egg_button_alan">Legal! Saudações!</string>
+
+    <!-- ========================== -->
+    <!-- H.264 PARAMETERS           -->
+    <!-- ========================== -->
+    <string name="h264_bitrate">Taxa de bits (Mbps)</string>
+    <string name="h264_mode">Modo de taxa de bits</string>
+    <string name="h264_mode_cbr">Constante (CBR - Baixa Latência)</string>
+    <string name="h264_mode_vbr">Variável (VBR - Qualidade)</string>
+
+    <!-- ========================== -->
+    <!-- ERROR MESSAGES             -->
+    <!-- ========================== -->
+    <string name="error_port_title">Porta indisponível</string>
+    <string name="error_port_message">A porta %d já está em uso por outro aplicativo. Por favor, escolha outra.</string>
+    <string name="btn_change_port">Alterar Porta</string>
 
 </resources>

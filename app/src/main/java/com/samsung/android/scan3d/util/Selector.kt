@@ -33,7 +33,7 @@ object Selector {
             return emptyList()
         }
 
-        // On parcourt TOUTES les caméras que le système nous donne, sans aucun filtre préalable.
+        // Iterate through all cameras provided by the system, without any prior filtering.
         for (id in cameraIds) {
             try {
                 val characteristics = cameraManager.getCameraCharacteristics(id)
@@ -48,7 +48,7 @@ object Selector {
 
                 val title: String
 
-                // On essaie de construire le nom technique. Si des infos manquent, on met un nom de secours.
+                // Try to build a technical name. If info is missing, use a fallback name.
                 if (focalLengths != null && focalLengths.isNotEmpty() &&
                     apertures != null && apertures.isNotEmpty() &&
                     sensorSize != null) {
@@ -63,7 +63,7 @@ object Selector {
                     title = "Camera ID: $id ($orientation)"
                 }
 
-                // On ajoute la caméra si on n'a pas déjà une autre avec exactement le même titre.
+                // Add the camera if we don't already have another one with the exact same title.
                 if (!availableCameras.any { it.title == title }) {
                     availableCameras.add(
                         SensorDesc(title, id, ImageFormat.JPEG)
@@ -71,13 +71,13 @@ object Selector {
                 }
 
             } catch (e: Exception) {
-                // Si on n'arrive pas à lire les infos d'une caméra, on l'ignore silencieusement.
-                // C'est souvent une caméra système ou virtuelle non destinée aux apps tierces.
+                // If we can't read a camera's info, ignore it silently.
+                // This is often a system or virtual camera not intended for third-party apps.
                 Log.w("SELECTOR", "Could not process camera $id, skipping. Error: ${e.message}")
             }
         }
 
-        // On trie la liste finale par ID de caméra pour un ordre cohérent.
+        // Sort the final list by camera ID for a consistent order.
         return availableCameras.sortedBy { it.cameraId.toIntOrNull() ?: Int.MAX_VALUE }
     }
 }

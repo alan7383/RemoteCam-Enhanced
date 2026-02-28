@@ -29,6 +29,7 @@ object SettingsManager {
     private const val KEY_REMEMBER_SENSOR = "remember_sensor"
     private const val KEY_REMEMBER_RESOLUTION = "remember_resolution"
     private const val KEY_REMEMBER_QUALITY = "remember_quality"
+    private const val KEY_REMEMBER_H264 = "remember_h264" // --- NOUVEAU ---
 
     private const val KEY_TARGET_FPS = "target_fps"
     private const val KEY_DOUBLE_TAP_ACTION = "double_tap_action"
@@ -44,9 +45,11 @@ object SettingsManager {
     private const val KEY_ALLOW_RECONNECTS = "allow_reconnects"
 
     private const val KEY_ZOOM_SMOOTHING_DELAY = "zoom_smoothing_delay"
-
     private const val KEY_HTTP_PORT = "http_port"
 
+    private const val KEY_STREAM_FORMAT = "stream_format"
+    private const val KEY_H264_BITRATE = "h264_bitrate"
+    private const val KEY_H264_MODE = "h264_mode"
 
     const val THEME_AUTO = 0
     const val THEME_LIGHT = 1
@@ -98,6 +101,12 @@ object SettingsManager {
 
     const val DEFAULT_PORT = 8080
 
+    const val FORMAT_MJPEG = 0
+    const val FORMAT_H264 = 1
+    const val DEFAULT_H264_BITRATE = 10
+    const val H264_MODE_CBR = 0
+    const val H264_MODE_VBR = 1
+
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     }
@@ -110,18 +119,17 @@ object SettingsManager {
                 putBoolean(KEY_PREVIEW, viewState.preview)
                 putBoolean(KEY_STREAM, viewState.stream)
 
-                if (loadRememberSensor(context)) {
-                    putString(KEY_CAMERA_ID, viewState.cameraId)
-                }
-                if (loadRememberResolution(context)) {
-                    putInt(KEY_RESOLUTION_INDEX, viewState.resolutionIndex ?: -1)
-                }
-                if (loadRememberQuality(context)) {
-                    putInt(KEY_QUALITY, viewState.quality)
-                }
+                if (loadRememberSensor(context)) putString(KEY_CAMERA_ID, viewState.cameraId)
+                if (loadRememberResolution(context)) putInt(KEY_RESOLUTION_INDEX, viewState.resolutionIndex ?: -1)
+                if (loadRememberQuality(context)) putInt(KEY_QUALITY, viewState.quality)
                 if (loadRememberFlash(context)) {
                     putBoolean(KEY_FLASH, viewState.flash)
                     putInt(KEY_FLASH_LEVEL, viewState.flashLevel)
+                }
+                // --- ON SAUVEGARDE LES RÉGLAGES H264 SI L'OPTION EST ACTIVÉE ---
+                if (loadRememberH264(context)) {
+                    putInt(KEY_H264_BITRATE, viewState.h264Bitrate)
+                    putInt(KEY_H264_MODE, viewState.h264Mode)
                 }
             }
         }
@@ -131,242 +139,92 @@ object SettingsManager {
         val prefs = getPrefs(context)
         val rememberSettings = loadRememberSettings(context)
 
-        val defaultPreview = true
-        val defaultStream = false
-        val defaultQuality = 80
-        val defaultFlash = false
+        val preview = if (rememberSettings) prefs.getBoolean(KEY_PREVIEW, true) else true
+        val stream = if (rememberSettings) prefs.getBoolean(KEY_STREAM, false) else false
 
-        val preview = if (rememberSettings) prefs.getBoolean(KEY_PREVIEW, defaultPreview) else defaultPreview
-        val stream = if (rememberSettings) prefs.getBoolean(KEY_STREAM, defaultStream) else defaultStream
+        val cameraId = if (rememberSettings && loadRememberSensor(context)) prefs.getString(KEY_CAMERA_ID, defaultCameraId)!! else defaultCameraId
+        val quality = if (rememberSettings && loadRememberQuality(context)) prefs.getInt(KEY_QUALITY, 80) else 80
+        val resIdx = if (rememberSettings && loadRememberResolution(context)) prefs.getInt(KEY_RESOLUTION_INDEX, -1) else -1
+        val flash = if (rememberSettings && loadRememberFlash(context)) prefs.getBoolean(KEY_FLASH, false) else false
+        val flashLvl = if (rememberSettings && loadRememberFlash(context)) prefs.getInt(KEY_FLASH_LEVEL, -1) else -1
 
-        val cameraId = if (rememberSettings && loadRememberSensor(context)) {
-            prefs.getString(KEY_CAMERA_ID, defaultCameraId)!!
-        } else {
-            defaultCameraId
-        }
+        // The video format is a global setting that is always loaded
+        val streamFormat = prefs.getInt(KEY_STREAM_FORMAT, FORMAT_MJPEG)
 
-        val quality = if (rememberSettings && loadRememberQuality(context)) {
-            prefs.getInt(KEY_QUALITY, defaultQuality)
-        } else {
-            defaultQuality
-        }
-
-        val resolutionIndexInt = if (rememberSettings && loadRememberResolution(context)) {
-            prefs.getInt(KEY_RESOLUTION_INDEX, -1)
-        } else {
-            -1
-        }
-        val resolutionIndex = if (resolutionIndexInt == -1) null else resolutionIndexInt
-
-        val flash = if (rememberSettings && loadRememberFlash(context)) {
-            prefs.getBoolean(KEY_FLASH, defaultFlash)
-        } else {
-            defaultFlash
-        }
-
-        val flashLevel = if (rememberSettings && loadRememberFlash(context)) {
-            prefs.getInt(KEY_FLASH_LEVEL, -1)
-        } else {
-            -1
-        }
+        // The H.264 menu settings depend on memory
+        val h264Bitrate = if (rememberSettings && loadRememberH264(context)) prefs.getInt(KEY_H264_BITRATE, DEFAULT_H264_BITRATE) else DEFAULT_H264_BITRATE
+        val h264Mode = if (rememberSettings && loadRememberH264(context)) prefs.getInt(KEY_H264_MODE, H264_MODE_CBR) else H264_MODE_CBR
 
         return ViewState(
             preview = preview,
             stream = stream,
             cameraId = cameraId,
-            resolutionIndex = resolutionIndex,
+            resolutionIndex = if (resIdx == -1) null else resIdx,
             quality = quality,
             flash = flash,
-            flashLevel = flashLevel
+            flashLevel = flashLvl,
+            streamFormat = streamFormat,
+            h264Bitrate = h264Bitrate,
+            h264Mode = h264Mode
         )
     }
 
-    fun saveThemeMode(context: Context, mode: Int) {
-        getPrefs(context).edit { putInt(KEY_THEME, mode) }
-    }
+    fun saveThemeMode(context: Context, mode: Int) = getPrefs(context).edit { putInt(KEY_THEME, mode) }
+    fun loadThemeMode(context: Context) = getPrefs(context).getInt(KEY_THEME, THEME_AUTO)
+    fun saveMonetEnabled(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_MONET, enabled) }
+    fun loadMonetEnabled(context: Context) = getPrefs(context).getBoolean(KEY_MONET, true)
+    fun saveKeepScreenOn(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_KEEP_SCREEN_ON, enabled) }
+    fun loadKeepScreenOn(context: Context) = getPrefs(context).getBoolean(KEY_KEEP_SCREEN_ON, false)
+    fun saveLanguage(context: Context, languageCode: String) = getPrefs(context).edit { putString(KEY_LANGUAGE, languageCode) }
+    fun loadLanguage(context: Context) = getPrefs(context).getString(KEY_LANGUAGE, LANG_AUTO) ?: LANG_AUTO
 
-    fun loadThemeMode(context: Context): Int {
-        return getPrefs(context).getInt(KEY_THEME, THEME_AUTO)
-    }
+    fun saveRememberSettings(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_SETTINGS_ENABLED, enabled) }
+    fun loadRememberSettings(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_SETTINGS_ENABLED, true)
+    fun saveRememberFlash(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_FLASH, enabled) }
+    fun loadRememberFlash(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_FLASH, true)
+    fun saveRememberZoom(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_ZOOM, enabled) }
+    fun loadRememberZoom(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_ZOOM, true)
+    fun saveRememberSensor(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_SENSOR, enabled) }
+    fun loadRememberSensor(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_SENSOR, true)
+    fun saveRememberResolution(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_RESOLUTION, enabled) }
+    fun loadRememberResolution(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_RESOLUTION, true)
+    fun saveRememberQuality(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_QUALITY, enabled) }
+    fun loadRememberQuality(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_QUALITY, true)
 
-    fun saveMonetEnabled(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_MONET, enabled) }
-    }
+    // --- ACCESSEURS POUR MÉMORISER LES PARAMÈTRES H.264 (BITRATE/MODE) ---
+    fun saveRememberH264(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_REMEMBER_H264, enabled) }
+    fun loadRememberH264(context: Context) = getPrefs(context).getBoolean(KEY_REMEMBER_H264, true)
 
-    fun loadMonetEnabled(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_MONET, true)
-    }
-
-    fun saveKeepScreenOn(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_KEEP_SCREEN_ON, enabled) }
-    }
-
-    fun loadKeepScreenOn(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_KEEP_SCREEN_ON, false)
-    }
-
-    fun saveLanguage(context: Context, languageCode: String) {
-        getPrefs(context).edit { putString(KEY_LANGUAGE, languageCode) }
-    }
-
-    fun loadLanguage(context: Context): String {
-        return getPrefs(context).getString(KEY_LANGUAGE, LANG_AUTO) ?: LANG_AUTO
-    }
-
-    fun saveRememberSettings(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_REMEMBER_SETTINGS_ENABLED, enabled) }
-    }
-
-    fun loadRememberSettings(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_REMEMBER_SETTINGS_ENABLED, true)
-    }
-
-    fun saveRememberFlash(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_REMEMBER_FLASH, enabled) }
-    }
-
-    fun loadRememberFlash(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_REMEMBER_FLASH, true)
-    }
-
-    fun saveRememberZoom(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_REMEMBER_ZOOM, enabled) }
-    }
-
-    fun loadRememberZoom(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_REMEMBER_ZOOM, true)
-    }
-
-    fun saveRememberSensor(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_REMEMBER_SENSOR, enabled) }
-    }
-
-    fun loadRememberSensor(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_REMEMBER_SENSOR, true)
-    }
-
-    fun saveRememberResolution(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_REMEMBER_RESOLUTION, enabled) }
-    }
-
-    fun loadRememberResolution(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_REMEMBER_RESOLUTION, true)
-    }
-
-    fun saveRememberQuality(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_REMEMBER_QUALITY, enabled) }
-    }
-
-    fun loadRememberQuality(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_REMEMBER_QUALITY, true)
-    }
-
-    fun saveZoomRatio(context: Context, ratio: Float) {
-        if(loadRememberSettings(context) && loadRememberZoom(context)) {
-            getPrefs(context).edit { putFloat(KEY_ZOOM_RATIO, ratio) }
-        }
-    }
-
-    fun loadZoomRatio(context: Context): Float {
-        if(loadRememberSettings(context) && loadRememberZoom(context)) {
-            return getPrefs(context).getFloat(KEY_ZOOM_RATIO, 1.0f)
-        }
-        return 1.0f
-    }
-
-    fun saveTargetFps(context: Context, fps: Int) {
-        getPrefs(context).edit { putInt(KEY_TARGET_FPS, fps) }
-    }
-
-    fun loadTargetFps(context: Context): Int {
-        return getPrefs(context).getInt(KEY_TARGET_FPS, 30)
-    }
-
-    fun saveDoubleTapAction(context: Context, action: Int) {
-        getPrefs(context).edit { putInt(KEY_DOUBLE_TAP_ACTION, action) }
-    }
-
-    fun loadDoubleTapAction(context: Context): Int {
-        return getPrefs(context).getInt(KEY_DOUBLE_TAP_ACTION, DOUBLE_TAP_OFF)
-    }
-
-    fun saveStabilizationOff(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_STABILIZATION_OFF, enabled) }
-    }
-
-    fun loadStabilizationOff(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_STABILIZATION_OFF, false)
-    }
-
-    fun saveAntiFlickerMode(context: Context, mode: Int) {
-        getPrefs(context).edit { putInt(KEY_ANTI_FLICKER_MODE, mode) }
-    }
-
-    fun loadAntiFlickerMode(context: Context): Int {
-        return getPrefs(context).getInt(KEY_ANTI_FLICKER_MODE, ANTI_FLICKER_AUTO)
-    }
-
-    fun saveNoiseReductionMode(context: Context, mode: Int) {
-        getPrefs(context).edit { putInt(KEY_NOISE_REDUCTION_MODE, mode) }
-    }
-
-    fun loadNoiseReductionMode(context: Context): Int {
-        return getPrefs(context).getInt(KEY_NOISE_REDUCTION_MODE, NR_AUTO)
-    }
-
-    fun saveVolumeAction(context: Context, action: Int) {
-        getPrefs(context).edit { putInt(KEY_VOLUME_ACTION, action) }
-    }
-
-    fun loadVolumeAction(context: Context): Int {
-        return getPrefs(context).getInt(KEY_VOLUME_ACTION, VOL_ACTION_OFF)
-    }
-
-    fun saveAutoDimDelay(context: Context, delayMs: Int) {
-        getPrefs(context).edit { putInt(KEY_AUTO_DIM_DELAY, delayMs) }
-    }
-
-    fun loadAutoDimDelay(context: Context): Int {
-        return getPrefs(context).getInt(KEY_AUTO_DIM_DELAY, DIM_DELAY_OFF)
-    }
-
-    fun saveLockInputOnDim(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_LOCK_INPUT_ON_DIM, enabled) }
-    }
-
-    fun loadLockInputOnDim(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_LOCK_INPUT_ON_DIM, false)
-    }
-
-    fun saveBackgroundStreaming(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_BACKGROUND_STREAMING, enabled) }
-    }
-
-    fun loadBackgroundStreaming(context:Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_BACKGROUND_STREAMING, true)
-    }
-
-    fun saveAllowReconnects(context: Context, enabled: Boolean) {
-        getPrefs(context).edit { putBoolean(KEY_ALLOW_RECONNECTS, enabled) }
-    }
-
-    fun loadAllowReconnects(context: Context): Boolean {
-        return getPrefs(context).getBoolean(KEY_ALLOW_RECONNECTS, true)
-    }
-
-    fun saveZoomSmoothingDelay(context: Context, delayMs: Int) {
-        getPrefs(context).edit { putInt(KEY_ZOOM_SMOOTHING_DELAY, delayMs) }
-    }
-
-    fun loadZoomSmoothingDelay(context: Context): Int {
-        return getPrefs(context).getInt(KEY_ZOOM_SMOOTHING_DELAY, SMOOTH_DELAY_NONE)
-    }
-
-    fun savePort(context: Context, port: Int) {
-        getPrefs(context).edit { putInt(KEY_HTTP_PORT, port) }
-    }
-
-    fun loadPort(context: Context): Int {
-        return getPrefs(context).getInt(KEY_HTTP_PORT, DEFAULT_PORT)
-    }
+    fun saveZoomRatio(context: Context, ratio: Float) { if(loadRememberSettings(context) && loadRememberZoom(context)) getPrefs(context).edit { putFloat(KEY_ZOOM_RATIO, ratio) } }
+    fun loadZoomRatio(context: Context): Float = if(loadRememberSettings(context) && loadRememberZoom(context)) getPrefs(context).getFloat(KEY_ZOOM_RATIO, 1.0f) else 1.0f
+    fun saveTargetFps(context: Context, fps: Int) = getPrefs(context).edit { putInt(KEY_TARGET_FPS, fps) }
+    fun loadTargetFps(context: Context) = getPrefs(context).getInt(KEY_TARGET_FPS, 30)
+    fun saveDoubleTapAction(context: Context, action: Int) = getPrefs(context).edit { putInt(KEY_DOUBLE_TAP_ACTION, action) }
+    fun loadDoubleTapAction(context: Context) = getPrefs(context).getInt(KEY_DOUBLE_TAP_ACTION, DOUBLE_TAP_OFF)
+    fun saveStabilizationOff(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_STABILIZATION_OFF, enabled) }
+    fun loadStabilizationOff(context: Context) = getPrefs(context).getBoolean(KEY_STABILIZATION_OFF, false)
+    fun saveAntiFlickerMode(context: Context, mode: Int) = getPrefs(context).edit { putInt(KEY_ANTI_FLICKER_MODE, mode) }
+    fun loadAntiFlickerMode(context: Context) = getPrefs(context).getInt(KEY_ANTI_FLICKER_MODE, ANTI_FLICKER_AUTO)
+    fun saveNoiseReductionMode(context: Context, mode: Int) = getPrefs(context).edit { putInt(KEY_NOISE_REDUCTION_MODE, mode) }
+    fun loadNoiseReductionMode(context: Context) = getPrefs(context).getInt(KEY_NOISE_REDUCTION_MODE, NR_AUTO)
+    fun saveVolumeAction(context: Context, action: Int) = getPrefs(context).edit { putInt(KEY_VOLUME_ACTION, action) }
+    fun loadVolumeAction(context: Context) = getPrefs(context).getInt(KEY_VOLUME_ACTION, VOL_ACTION_OFF)
+    fun saveAutoDimDelay(context: Context, delayMs: Int) = getPrefs(context).edit { putInt(KEY_AUTO_DIM_DELAY, delayMs) }
+    fun loadAutoDimDelay(context: Context) = getPrefs(context).getInt(KEY_AUTO_DIM_DELAY, DIM_DELAY_OFF)
+    fun saveLockInputOnDim(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_LOCK_INPUT_ON_DIM, enabled) }
+    fun loadLockInputOnDim(context: Context) = getPrefs(context).getBoolean(KEY_LOCK_INPUT_ON_DIM, false)
+    fun saveBackgroundStreaming(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_BACKGROUND_STREAMING, enabled) }
+    fun loadBackgroundStreaming(context:Context) = getPrefs(context).getBoolean(KEY_BACKGROUND_STREAMING, true)
+    fun saveAllowReconnects(context: Context, enabled: Boolean) = getPrefs(context).edit { putBoolean(KEY_ALLOW_RECONNECTS, enabled) }
+    fun loadAllowReconnects(context: Context) = getPrefs(context).getBoolean(KEY_ALLOW_RECONNECTS, true)
+    fun saveZoomSmoothingDelay(context: Context, delayMs: Int) = getPrefs(context).edit { putInt(KEY_ZOOM_SMOOTHING_DELAY, delayMs) }
+    fun loadZoomSmoothingDelay(context: Context) = getPrefs(context).getInt(KEY_ZOOM_SMOOTHING_DELAY, SMOOTH_DELAY_NONE)
+    fun savePort(context: Context, port: Int) = getPrefs(context).edit { putInt(KEY_HTTP_PORT, port) }
+    fun loadPort(context: Context) = getPrefs(context).getInt(KEY_HTTP_PORT, DEFAULT_PORT)
+    fun saveStreamFormat(context: Context, format: Int) = getPrefs(context).edit { putInt(KEY_STREAM_FORMAT, format) }
+    fun loadStreamFormat(context: Context) = getPrefs(context).getInt(KEY_STREAM_FORMAT, FORMAT_MJPEG)
+    fun saveH264Bitrate(context: Context, mbps: Int) = getPrefs(context).edit { putInt(KEY_H264_BITRATE, mbps) }
+    fun loadH264Bitrate(context: Context) = getPrefs(context).getInt(KEY_H264_BITRATE, DEFAULT_H264_BITRATE)
+    fun saveH264Mode(context: Context, mode: Int) = getPrefs(context).edit { putInt(KEY_H264_MODE, mode) }
+    fun loadH264Mode(context: Context) = getPrefs(context).getInt(KEY_H264_MODE, H264_MODE_CBR)
 }

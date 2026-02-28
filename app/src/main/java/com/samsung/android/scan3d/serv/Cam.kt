@@ -36,6 +36,7 @@ class Cam : Service(), CoroutineScope {
 
         if (intent == null) return START_STICKY
 
+        // Security: if the service is not yet initialized, ignore commands except "start"
         if (http == null && intent.action != "start") {
             Log.w("cam", "service not yet initialized (http=null). command '${intent.action}' ignored.")
             return START_STICKY
@@ -85,7 +86,7 @@ class Cam : Service(), CoroutineScope {
                     startForeground(123, notification)
 
                     http = HttpService(this)
-                    engine?.http = http
+                    // engine?.http = http // Will be assigned when the engine is created
 
                     launch(Dispatchers.IO) {
                         http?.start()
@@ -95,12 +96,7 @@ class Cam : Service(), CoroutineScope {
 
             "onPause" -> {
                 val allowBackground = SettingsManager.loadBackgroundStreaming(this)
-
-                if (!allowBackground) {
-                    engine?.insidePause = true
-                } else {
-                    engine?.insidePause = false
-                }
+                engine?.insidePause = !allowBackground
             }
 
             "onResume" -> {
@@ -111,9 +107,7 @@ class Cam : Service(), CoroutineScope {
                 val surface: Surface? = intent.extras?.getParcelable("surface", Surface::class.java)
 
                 engine?.let {
-                    if (it.insidePause) {
-                        it.insidePause = false
-                    }
+                    if (it.insidePause) it.insidePause = false
                 }
 
                 if (engine == null) {
@@ -142,14 +136,33 @@ class Cam : Service(), CoroutineScope {
                     val new: ViewState = intent.extras?.getParcelable("data", ViewState::class.java)!!
                     eng.viewState = new
 
+                    // Check if a change requires restarting the encoder/camera
                     if (old.cameraId != new.cameraId ||
                         old.resolutionIndex != new.resolutionIndex ||
-                        old.preview != new.preview)
+                        old.preview != new.preview ||
+                        old.streamFormat != new.streamFormat)
                     {
-                        eng.restart()
+                        // Disconnect clients only if the format, resolution or sensor changes
+                        // to force OBS to redetect the image geometry.
+                        val shouldDisconnect = old.cameraId != new.cameraId ||
+                                old.resolutionIndex != new.resolutionIndex ||
+                                old.streamFormat != new.streamFormat
+
+                        eng.restart(disconnectClients = shouldDisconnect)
                     }
-                    else if (old.flash != new.flash || old.quality != new.quality || old.flashLevel != new.flashLevel) {
-                        eng.updateRepeatingRequest()
+                    // Other parameters that only require a repeating request update (no restart)
+                    else if (old.flash != new.flash ||
+                        old.quality != new.quality ||
+                        old.flashLevel != new.flashLevel ||
+                        old.h264Bitrate != new.h264Bitrate ||
+                        old.h264Mode != new.h264Mode)
+                    {
+                        // Note: The H264 bitrate requires a restart(false) to be applied by MediaCodec
+                        if (old.h264Bitrate != new.h264Bitrate || old.h264Mode != new.h264Mode) {
+                            eng.restart(disconnectClients = false)
+                        } else {
+                            eng.updateRepeatingRequest()
+                        }
                     }
                 }
             }
@@ -157,7 +170,8 @@ class Cam : Service(), CoroutineScope {
             "preview_surface_destroyed" -> {
                 engine?.previewSurface = null
                 if (engine?.isShowingPreview == true) {
-                    engine?.restart()
+                    // We don't disconnect clients when the local preview dies (e.g. going to settings)
+                    engine?.restart(disconnectClients = false)
                 }
             }
 
@@ -171,31 +185,18 @@ class Cam : Service(), CoroutineScope {
                 engine?.setZoomRatio(ratio)
             }
 
-            "volume_zoom_in" -> {
-                engine?.stepZoomIn()
-            }
-            "volume_zoom_out" -> {
-                engine?.stepZoomOut()
-            }
-            "volume_action_switch_cam" -> {
-                engine?.switchToNextCamera()
-            }
-            "volume_action_toggle_flash" -> {
-                engine?.toggleFlash()
-            }
+            "volume_zoom_in" -> engine?.stepZoomIn()
+            "volume_zoom_out" -> engine?.stepZoomOut()
+            "volume_action_switch_cam" -> engine?.switchToNextCamera()
+            "volume_action_toggle_flash" -> engine?.toggleFlash()
 
             "set_target_fps" -> {
                 val fps = intent.getIntExtra("fps", 30)
                 engine?.setTargetFps(fps)
             }
 
-            "double_tap_action_switch_camera" -> {
-                engine?.switchToNextCamera()
-            }
-
-            "double_tap_action_toggle_zoom" -> {
-                engine?.toggleZoom()
-            }
+            "double_tap_action_switch_camera" -> engine?.switchToNextCamera()
+            "double_tap_action_toggle_zoom" -> engine?.toggleZoom()
 
             "set_anti_flicker" -> {
                 val mode = intent.getIntExtra("mode", SettingsManager.ANTI_FLICKER_AUTO)
@@ -217,13 +218,29 @@ class Cam : Service(), CoroutineScope {
                 engine?.setZoomSmoothingDelay(delay)
             }
 
+            "set_stream_format" -> {
+                val format = intent.getIntExtra("format", SettingsManager.FORMAT_MJPEG)
+                engine?.setStreamFormat(format)
+            }
+
+            "set_h264_bitrate" -> {
+                val bitrate = intent.getIntExtra("bitrate", SettingsManager.DEFAULT_H264_BITRATE)
+                engine?.setH264Bitrate(bitrate)
+            }
+
+            "set_h264_mode" -> {
+                val mode = intent.getIntExtra("mode", SettingsManager.H264_MODE_CBR)
+                engine?.setH264Mode(mode)
+            }
+
             "set_http_port" -> {
                 val newPort = intent.getIntExtra("port", SettingsManager.DEFAULT_PORT)
                 http?.restartServer(newPort)
 
                 val uiIntent = Intent("PORT_UPDATED").setPackage(packageName)
                 sendBroadcast(uiIntent)
-                engine?.restart()
+                // We restart the engine to reconnect the stream to the new server
+                engine?.restart(disconnectClients = true)
             }
 
             "set_flash_level" -> {

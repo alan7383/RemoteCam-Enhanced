@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- ========================== -->
@@ -121,8 +122,10 @@
     <!-- Stream Format -->
     <string name="settings_format_title">Stream Format</string>
     <string name="settings_format_desc">Format used for the HTTP stream</string>
-    <string name="settings_format_mjpeg">MJPEG (Images)</string>
-    <string name="settings_format_h264">H.264 (Video - Efficient)</string>
+    <string name="settings_format_mjpeg">MJPEG</string>
+    <string name="settings_format_mjpeg_desc">Images</string>
+    <string name="settings_format_h264">H.264</string>
+    <string name="settings_format_h264_desc">Video - Smooth</string>
 
     <!-- ========================== -->
     <!-- SETTINGS - CONTROLS        -->
@@ -217,5 +220,21 @@
     <string name="egg_title_alan">A little note from the dev :p</string>
     <string name="egg_message_alan">Hey there! Alan here ^^\n\nFunny that you clicked 7 times to get here!\n\nJust wanted to say thanks. This app is a \'fork\', which means I took the awesome base from the original dev and spent a ton of time adding my own improvements (days and days, evenings and weekends...).\n\nI really hope you find it useful!\n\nThanks for using it!\n- Alan</string>
     <string name="egg_button_alan">Cool! Greetings!</string>
+
+    <!-- ========================== -->
+    <!-- H.264 PARAMETERS           -->
+    <!-- ========================== -->
+    <string name="h264_bitrate">Bitrate (Mbps)</string>
+    <string name="h264_mode">Bitrate Mode</string>
+    <string name="h264_mode_cbr">Constant (CBR - Low Latency)</string>
+    <string name="h264_mode_vbr">Variable (VBR - Quality)</string>
+
+    <!-- ========================== -->
+    <!-- ERROR MESSAGES             -->
+    <!-- ========================== -->
+    <string name="error_port_title">Port unavailable</string>
+    <string name="error_port_message">Port %d is already in use by another application. Please choose a different one.</string>
+    <string name="btn_change_port">Change Port</string>
+
 
 </resources>

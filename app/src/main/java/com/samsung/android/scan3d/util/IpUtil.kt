@@ -1,5 +1,10 @@
 package com.samsung.android.scan3d.util
 
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.BatteryManager
+import android.provider.Settings
 import java.net.NetworkInterface
 import java.util.Collections
 
@@ -21,4 +26,6 @@ object IpUtil {
         }
         return null
     }
+
+
 }

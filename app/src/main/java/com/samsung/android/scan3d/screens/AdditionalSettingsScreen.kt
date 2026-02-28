@@ -12,6 +12,10 @@ fun AdditionalSettingsScreen(
 ) {
     val context = LocalContext.current
 
+    /**
+     * Sends an Intent to the Cam service to update the camera engine's
+     * settings in real-time.
+     */
     fun sendIntentToCamService(action: String, extras: ((Intent) -> Unit) = {}) {
         val intent = Intent(context, Cam::class.java).apply {
             this.action = action
@@ -36,6 +40,10 @@ fun AdditionalSettingsScreen(
         },
         onSendZoomSmoothingIntent = { delay ->
             sendIntentToCamService("set_zoom_smoothing") { it.putExtra("delay", delay) }
+        },
+        onSendFormatIntent = { format ->
+            // Sends the new format (MJPEG = 0, H264 = 1) to the service
+            sendIntentToCamService("set_stream_format") { it.putExtra("format", format) }
         }
     )
 }

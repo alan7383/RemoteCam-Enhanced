@@ -38,7 +38,6 @@ fun AppNavigation(
         startDestination = startDestination,
         modifier = Modifier.fillMaxSize()
     ) {
-        // Application des animations style "SukiSU Ultra" pour chaque écran
 
         composable(
             route = Screen.Permissions.route,
@@ -59,7 +58,6 @@ fun AppNavigation(
 
         composable(
             route = Screen.Camera.route,
-            // La caméra est souvent l'écran principal, on garde les mêmes anims pour la cohérence
             enterTransition = { slideInHorizontally(initialOffsetX = { it }) },
             exitTransition = { slideOutHorizontally(targetOffsetX = { -it / 4 }) + fadeOut() },
             popEnterTransition = { slideInHorizontally(initialOffsetX = { -it / 4 }) + fadeIn() },

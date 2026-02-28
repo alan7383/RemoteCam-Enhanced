@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -42,7 +41,6 @@ import com.samsung.android.scan3d.ViewState
 import com.samsung.android.scan3d.fragments.SettingsGroup
 import com.samsung.android.scan3d.fragments.SettingsGroupTitle
 import com.samsung.android.scan3d.fragments.SettingsItem
-import com.samsung.android.scan3d.fragments.getSettingsShape
 import com.samsung.android.scan3d.serv.CamEngine
 
 val QUALITIES = listOf(1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
@@ -55,7 +53,8 @@ fun SettingsIntegerSliderItem(
     sliderValue: Int,
     valueRange: ClosedFloatingPointRange<Float>,
     steps: Int,
-    onValueChange: (Int) -> Unit
+    onValueChange: (Int) -> Unit,
+    defaultValue: Int? = null
 ) {
     Card(
         shape = shape,
@@ -68,6 +67,22 @@ fun SettingsIntegerSliderItem(
                 Spacer(modifier = Modifier.width(20.dp))
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.weight(1f))
+
+                if (defaultValue != null && sliderValue != defaultValue) {
+                    IconButton(
+                        onClick = { onValueChange(defaultValue) },
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.RestartAlt,
+                            contentDescription = "Reset",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
                 Text(
                     text = "$sliderValue",
                     style = MaterialTheme.typography.bodyMedium,
@@ -116,7 +131,9 @@ fun CameraScreenUI(
     onZoomScaleChanged: (Float) -> Unit,
     onZoomRatioChanged: (Float) -> Unit,
     onSettingsClicked: () -> Unit,
-    onDoubleTapped: () -> Unit
+    onDoubleTapped: () -> Unit,
+    onH264BitrateChanged: (Int) -> Unit,
+    onH264ModeChanged: (Int) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -127,8 +144,14 @@ fun CameraScreenUI(
                     titleContentColor = MaterialTheme.colorScheme.onBackground
                 ),
                 actions = {
+                    val statsText = if (viewState.streamFormat == 1) {
+                        "${quickData?.rateKbs ?: 0} kB/s"
+                    } else {
+                        "${quickData?.ms ?: 0}ms / ${quickData?.rateKbs ?: 0} kB/s"
+                    }
+
                     Text(
-                        text = "${quickData?.ms ?: 0}ms / ${quickData?.rateKbs ?: 0}kB/s",
+                        text = statsText,
                         modifier = Modifier.padding(end = 12.dp),
                         color = MaterialTheme.colorScheme.primary,
                         style = MaterialTheme.typography.labelLarge,
@@ -177,57 +200,33 @@ fun CameraScreenUI(
                         textureView.apply {
                             surfaceTextureListener = object : TextureView.SurfaceTextureListener {
                                 private fun configureTransform(viewWidth: Int, viewHeight: Int) {
-                                    val bufferSize = camData?.resolutions?.getOrNull(viewState.resolutionIndex ?: 0)
-                                    val orientation = camData?.sensorOrientation ?: 90
-
-                                    if (bufferSize == null || viewWidth == 0 || viewHeight == 0) return
+                                    val data = camData ?: return
+                                    val bufferSize = data.resolutions.getOrNull(viewState.resolutionIndex ?: 0) ?: return
+                                    val orientation = data.sensorOrientation
 
                                     val matrix = Matrix()
-                                    val centerX = viewWidth / 2f
-                                    val centerY = viewHeight / 2f
-
                                     val viewRect = RectF(0f, 0f, viewWidth.toFloat(), viewHeight.toFloat())
                                     val bufferRect = RectF(0f, 0f, bufferSize.height.toFloat(), bufferSize.width.toFloat())
-
-                                    bufferRect.offset(centerX - bufferRect.centerX(), centerY - bufferRect.centerY())
-
+                                    bufferRect.offset(viewWidth/2f - bufferRect.centerX(), viewHeight/2f - bufferRect.centerY())
                                     matrix.setRectToRect(viewRect, bufferRect, Matrix.ScaleToFit.FILL)
-
-                                    val scale = maxOf(
-                                        viewHeight.toFloat() / bufferSize.width,
-                                        viewWidth.toFloat() / bufferSize.height
-                                    )
-
-                                    matrix.postScale(scale, scale, centerX, centerY)
-
-                                    if (orientation == 90 || orientation == 270) {
-                                        matrix.postRotate((orientation - 90).toFloat(), centerX, centerY)
-                                    } else if (orientation == 0) {
-                                        matrix.postRotate(0f, centerX, centerY)
-                                    }
-
+                                    val scale = maxOf(viewHeight.toFloat() / bufferSize.width, viewWidth.toFloat() / bufferSize.height)
+                                    matrix.postScale(scale, scale, viewWidth/2f, viewHeight/2f)
+                                    matrix.postRotate((orientation - 90).toFloat(), viewWidth/2f, viewHeight/2f)
                                     textureView.setTransform(matrix)
                                 }
-
                                 override fun onSurfaceTextureAvailable(st: SurfaceTexture, w: Int, h: Int) {
                                     configureTransform(w, h)
                                     onSurfaceAvailable(Surface(st))
                                 }
-
-                                override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) {
-                                    configureTransform(w, h)
-                                }
-
-                                override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean {
-                                    onSurfaceDestroyed()
-                                    return true
-                                }
-
+                                override fun onSurfaceTextureSizeChanged(st: SurfaceTexture, w: Int, h: Int) { configureTransform(w, h) }
+                                override fun onSurfaceTextureDestroyed(st: SurfaceTexture): Boolean { onSurfaceDestroyed(); return true }
                                 override fun onSurfaceTextureUpdated(st: SurfaceTexture) {}
                             }
                             setOnTouchListener { _, event -> scaleGestureDetector.onTouchEvent(event); gestureDetector.onTouchEvent(event); true }
                         }
+                        textureView
                     },
+                    modifier = Modifier.fillMaxSize()
                 )
             }
 
@@ -241,12 +240,8 @@ fun CameraScreenUI(
                     val maxFlashLevel = camData?.maxFlashLevel ?: 1
                     val hasFlash = camData?.hasFlash == true
                     val showIntensitySlider = hasFlash && viewState.flash && maxFlashLevel > 1
-
-                    val flashToggleIndex = 2
-
                     Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                         SettingsGroupTitle(stringResource(R.string.cam_controls))
-
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             SettingsItem(
                                 shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp),
@@ -256,7 +251,6 @@ fun CameraScreenUI(
                                 switchState = viewState.preview,
                                 onSwitchChange = onPreviewToggled
                             )
-
                             SettingsItem(
                                 shape = RoundedCornerShape(4.dp),
                                 title = stringResource(R.string.cam_mjpeg_stream),
@@ -265,7 +259,6 @@ fun CameraScreenUI(
                                 switchState = viewState.stream,
                                 onSwitchChange = onStreamToggled
                             )
-
                             if (hasFlash) {
                                 val flashToggleBottomRadius by animateDpAsState(
                                     targetValue = if (showIntensitySlider) 4.dp else 24.dp,
@@ -307,28 +300,59 @@ fun CameraScreenUI(
                     }
 
                     if (camData != null && viewState.resolutionIndex != null) {
-                        val hasZoom = camData.maxZoom > camData.minZoom
-                        SettingsGroup(
-                            title = stringResource(R.string.cam_parameters),
-                            items = listOf(
-                                { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_sensor), Icons.Rounded.CameraAlt, camData.sensors.map { it.title }, camData.sensors.indexOfFirst { it.cameraId == viewState.cameraId }, onSensorSelected) },
-                                { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_resolution), Icons.Rounded.PhotoSizeSelectActual, camData.resolutions.map { it.toString() }, viewState.resolutionIndex!!, onResolutionSelected) },
-                                { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_quality), Icons.Rounded.HighQuality, QUALITIES.map { "$it%" }, QUALITIES.indexOf(viewState.quality), { onQualitySelected(QUALITIES[it]) }) },
-                                { shape ->
-                                    if (hasZoom) {
-                                        SettingsSliderItem(shape, "Zoom", Icons.Rounded.ZoomIn, zoomSliderPosition, camData.currentZoom, onZoomRatioChanged)
-                                    }
-                                }
-                            )
-                        )
+                        val parameterItems = mutableListOf<@Composable (Shape) -> Unit>()
+                        parameterItems.add { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_sensor), Icons.Rounded.CameraAlt, camData.sensors.map { it.title }, camData.sensors.indexOfFirst { it.cameraId == viewState.cameraId }, onSensorSelected) }
+                        parameterItems.add { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_resolution), Icons.Rounded.PhotoSizeSelectActual, camData.resolutions.map { it.toString() }, viewState.resolutionIndex, onResolutionSelected) }
+
+                        if (viewState.streamFormat == 1) {
+                            parameterItems.add { shape ->
+                                SettingsIntegerSliderItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.h264_bitrate),
+                                    icon = Icons.Rounded.Speed,
+                                    sliderValue = viewState.h264Bitrate,
+                                    valueRange = 1f..100f,
+                                    steps = 98,
+                                    onValueChange = onH264BitrateChanged,
+                                    defaultValue = 10
+                                )
+                            }
+                            val modeOptions = listOf(stringResource(R.string.h264_mode_cbr), stringResource(R.string.h264_mode_vbr))
+                            parameterItems.add { shape -> SettingsDropdownItem(shape, stringResource(R.string.h264_mode), Icons.Rounded.Tune, modeOptions, viewState.h264Mode, onH264ModeChanged) }
+                        } else {
+                            parameterItems.add { shape -> SettingsDropdownItem(shape, stringResource(R.string.cam_quality), Icons.Rounded.HighQuality, QUALITIES.map { "$it%" }, QUALITIES.indexOf(viewState.quality), { onQualitySelected(QUALITIES[it]) }) }
+                        }
+
+                        if (camData.maxZoom > camData.minZoom) {
+                            parameterItems.add { shape -> SettingsSliderItem(shape, "Zoom", Icons.Rounded.ZoomIn, zoomSliderPosition, camData.currentZoom, onZoomRatioChanged) }
+                        }
+
+                        SettingsGroup(title = stringResource(R.string.cam_parameters), items = parameterItems)
                     }
 
                     val uriHandler = LocalUriHandler.current
                     SettingsGroup(
                         title = stringResource(R.string.cam_information),
                         items = listOf(
-                            { shape -> SettingsItem(shape, stringResource(R.string.cam_mjpeg_stream), subtitle = localIp, icon = Icons.Rounded.Link, onClick = { onIpClicked(localIp) }) },
-                            { shape -> SettingsItem(shape, "GitHub", subtitle = "github.com/alan7383/RemoteCam-Enhanced", icon = Icons.Rounded.Code, onClick = { uriHandler.openUri("https://github.com/alan7383/RemoteCam-Enhanced") }) }
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = stringResource(R.string.cam_mjpeg_stream),
+                                    subtitle = localIp,
+                                    icon = Icons.Rounded.Link,
+                                    onClick = { onIpClicked(localIp) }
+                                )
+                            },
+    // -----------------------
+                            { shape ->
+                                SettingsItem(
+                                    shape = shape,
+                                    title = "GitHub",
+                                    subtitle = "github.com/alan7383/RemoteCam-Enhanced",
+                                    icon = Icons.Rounded.Code,
+                                    onClick = { uriHandler.openUri("https://github.com/alan7383/RemoteCam-Enhanced") }
+                                )
+                            }
                         )
                     )
                 }

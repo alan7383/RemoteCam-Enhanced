@@ -22,6 +22,7 @@ import androidx.compose.material.icons.rounded.Memory
 import androidx.compose.material.icons.rounded.Movie
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -41,6 +42,7 @@ import com.samsung.android.scan3d.util.SettingsManager
 fun CameraSettingsScreen(
     onBackClicked: () -> Unit,
     onSendFpsIntent: (Int) -> Unit,
+    onSendFormatIntent: (Int) -> Unit,
     onSendAntiFlickerIntent: (Int) -> Unit,
     onSendNoiseReductionIntent: (Int) -> Unit,
     onSendStabilizationIntent: (Boolean) -> Unit,
@@ -48,14 +50,18 @@ fun CameraSettingsScreen(
 ) {
     val context = LocalContext.current
 
+    // Dialog States
     var showRememberDialog by remember { mutableStateOf(false) }
     var showFpsDialog by remember { mutableStateOf(false) }
+    var showFormatDialog by remember { mutableStateOf(false) }
     var showDoubleTapDialog by remember { mutableStateOf(false) }
     var showFlickerDialog by remember { mutableStateOf(false) }
     var showNoiseReductionDialog by remember { mutableStateOf(false) }
     var showVolumeActionDialog by remember { mutableStateOf(false) }
     var showZoomSmoothingDialog by remember { mutableStateOf(false) }
 
+    // Settings states loaded from SettingsManager
+    var currentFormat by remember { mutableIntStateOf(SettingsManager.loadStreamFormat(context)) }
     var currentSmoothingDelay by remember { mutableIntStateOf(SettingsManager.loadZoomSmoothingDelay(context)) }
     var rememberSettingsEnabled by remember { mutableStateOf(SettingsManager.loadRememberSettings(context)) }
     var rememberFlash by remember { mutableStateOf(SettingsManager.loadRememberFlash(context)) }
@@ -63,6 +69,7 @@ fun CameraSettingsScreen(
     var rememberSensor by remember { mutableStateOf(SettingsManager.loadRememberSensor(context)) }
     var rememberResolution by remember { mutableStateOf(SettingsManager.loadRememberResolution(context)) }
     var rememberQuality by remember { mutableStateOf(SettingsManager.loadRememberQuality(context)) }
+    var rememberH264 by remember { mutableStateOf(SettingsManager.loadRememberH264(context)) }
     var currentFps by remember { mutableIntStateOf(SettingsManager.loadTargetFps(context)) }
     var currentDoubleTap by remember { mutableIntStateOf(SettingsManager.loadDoubleTapAction(context)) }
     var stabilizationOff by remember { mutableStateOf(SettingsManager.loadStabilizationOff(context)) }
@@ -70,16 +77,48 @@ fun CameraSettingsScreen(
     var currentNoiseReduction by remember { mutableIntStateOf(SettingsManager.loadNoiseReductionMode(context)) }
     var currentVolumeAction by remember { mutableIntStateOf(SettingsManager.loadVolumeAction(context)) }
 
+    // Format Dialog Logic (H.264 / MJPEG)
+    if (showFormatDialog) {
+        val formatOptions = mapOf(
+            SettingsManager.FORMAT_MJPEG to stringResource(R.string.settings_format_mjpeg),
+            SettingsManager.FORMAT_H264 to stringResource(R.string.settings_format_h264)
+        )
+        val formatSubtitles = mapOf(
+            SettingsManager.FORMAT_MJPEG to stringResource(R.string.settings_format_mjpeg_desc),
+            SettingsManager.FORMAT_H264 to stringResource(R.string.settings_format_h264_desc)
+        )
+        SettingsRadioDialog(
+            title = stringResource(R.string.settings_format_title),
+            options = formatOptions,
+            selected = currentFormat,
+            onDismiss = { showFormatDialog = false },
+            onSelected = { newFormat ->
+                currentFormat = newFormat
+                SettingsManager.saveStreamFormat(context, newFormat)
+                onSendFormatIntent(newFormat)
+                showFormatDialog = false
+            },
+            showBetaBadgeForItem = { it == SettingsManager.FORMAT_H264 },
+            subtitles = formatSubtitles
+        )
+    }
+
     if (showRememberDialog) {
         RememberSettingsDialog(
-            rememberFlash = rememberFlash, rememberZoom = rememberZoom, rememberSensor = rememberSensor, rememberResolution = rememberResolution, rememberQuality = rememberQuality,
+            rememberFlash = rememberFlash,
+            rememberZoom = rememberZoom,
+            rememberSensor = rememberSensor,
+            rememberResolution = rememberResolution,
+            rememberQuality = rememberQuality,
+            rememberH264 = rememberH264,
             onDismiss = { showRememberDialog = false },
-            onSave = { newFlash, newZoom, newSensor, newRes, newQuality ->
+            onSave = { newFlash, newZoom, newSensor, newRes, newQual, newH264 ->
                 rememberFlash = newFlash; SettingsManager.saveRememberFlash(context, newFlash)
                 rememberZoom = newZoom; SettingsManager.saveRememberZoom(context, newZoom)
                 rememberSensor = newSensor; SettingsManager.saveRememberSensor(context, newSensor)
                 rememberResolution = newRes; SettingsManager.saveRememberResolution(context, newRes)
-                rememberQuality = newQuality; SettingsManager.saveRememberQuality(context, newQuality)
+                rememberQuality = newQual; SettingsManager.saveRememberQuality(context, newQual)
+                rememberH264 = newH264; SettingsManager.saveRememberH264(context, newH264)
                 showRememberDialog = false
             }
         )
@@ -151,6 +190,7 @@ fun CameraSettingsScreen(
                                     rememberSensor = true; SettingsManager.saveRememberSensor(context, true)
                                     rememberResolution = true; SettingsManager.saveRememberResolution(context, true)
                                     rememberQuality = true; SettingsManager.saveRememberQuality(context, true)
+                                    rememberH264 = true; SettingsManager.saveRememberH264(context, true)
                                 }
                             }
                         )
@@ -168,6 +208,18 @@ fun CameraSettingsScreen(
                                 onClick = { showRememberDialog = true }
                             )
                         }
+
+                        SettingsItem(
+                            shape = RoundedCornerShape(4.dp),
+                            title = stringResource(R.string.settings_format_title),
+                            subtitle = if (currentFormat == SettingsManager.FORMAT_H264)
+                                stringResource(R.string.settings_format_h264)
+                            else
+                                stringResource(R.string.settings_format_mjpeg),
+                            icon = Icons.Rounded.Videocam,
+                            onClick = { showFormatDialog = true },
+                            showBetaBadge = true
+                        )
 
                         SettingsItem(
                             shape = RoundedCornerShape(4.dp),

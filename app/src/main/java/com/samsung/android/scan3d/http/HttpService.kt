@@ -1,7 +1,7 @@
 package com.samsung.android.scan3d.http
 
 import android.content.Context
-import android.util.Log
+import android.content.Intent
 import com.samsung.android.scan3d.util.SettingsManager
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -10,45 +10,54 @@ import io.ktor.server.engine.*
 import io.ktor.server.netty.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.utils.io.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
 import java.io.OutputStream
+import io.netty.channel.ChannelOption
+import io.netty.bootstrap.ServerBootstrap
+import java.net.BindException
+import java.util.concurrent.CopyOnWriteArrayList
+
+data class H264Frame(val data: ByteArray, val isKeyFrame: Boolean)
+
+class ClientSession {
+    val channel = Channel<H264Frame>(capacity = 60)
+    var needsKeyframe = true
+}
 
 class HttpService(private val context: Context) {
     private lateinit var engine: NettyApplicationEngine
     private lateinit var imageChannel: Channel<ByteArray>
 
+    private val h264Clients = CopyOnWriteArrayList<ClientSession>()
     private var currentPort: Int = 0
 
-    /**
-     * A suspendable lambda that consumes image data from a channel and writes it to an
-     * OutputStream in MJPEG format. This continues until the client disconnects.
-     */
     private fun producer(): suspend OutputStream.() -> Unit = {
         val outputStream = this
-
         try {
             imageChannel.consumeEach { frameData ->
                 outputStream.write("--FRAME\r\nContent-Type: image/jpeg\r\n\r\n".toByteArray())
                 outputStream.write(frameData)
                 outputStream.flush()
             }
-        } catch (_: Exception) {
-            // This exception is expected when the client disconnects or the channel is closed.
-            // No action is needed.
-        }
+        } catch (_: Exception) {}
     }
 
-    /**
-     * Initializes and starts the Ktor embedded server.
-     */
     fun start() {
         imageChannel = Channel(Channel.CONFLATED)
         if (currentPort == 0) {
             currentPort = SettingsManager.loadPort(context)
         }
 
-        engine = embeddedServer(Netty, port = currentPort) {
+        // 1. Define the server
+        engine = embeddedServer(Netty, port = currentPort, configure = {
+            configureBootstrap = { bootstrap: ServerBootstrap ->
+                bootstrap.option(ChannelOption.TCP_NODELAY, true)
+                bootstrap.option(ChannelOption.SO_KEEPALIVE, true)
+            }
+            responseWriteTimeoutSeconds = 10
+        }) {
             routing {
                 get("/cam") {
                     call.respondText("Ok")
@@ -60,48 +69,82 @@ class HttpService(private val context: Context) {
                         producer = producer()
                     )
                 }
+                get("/cam.h264") {
+                    val session = ClientSession()
+                    h264Clients.add(session)
+                    try {
+                        call.respondBytesWriter(contentType = ContentType.parse("video/h264")) {
+                            session.channel.consumeEach { frame ->
+                                writeFully(frame.data)
+                                flush()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Client disconnected
+                    } finally {
+                        h264Clients.remove(session)
+                        session.channel.close()
+                    }
+                }
             }
         }
-        engine.start(wait = false)
+
+        // 2. Try to start it (This is where we put the try-catch!)
+        try {
+            engine.start(wait = false)
+        } catch (e: Exception) {
+            // If the port is already taken, Netty throws a BindException or an exception with BindException as cause
+            if (e is BindException || e.cause is BindException) {
+                val intent = Intent("PORT_BIND_ERROR").apply {
+                    setPackage(context.packageName)
+                    putExtra("failed_port", currentPort)
+                }
+                context.sendBroadcast(intent)
+            }
+            e.printStackTrace()
+            stop() // Clean up
+        }
     }
 
-    /**
-     * Gracefully stops the Ktor server engine.
-     */
     fun stop() {
         if (::engine.isInitialized) {
-            Log.i("HttpService", "Stopping server...")
-            try {
-                engine.stop(100, 100)
-            } catch (e: Exception) {
-                Log.w("HttpService", "Error while stopping server: ${e.message}")
-            }
+            disconnectClients()
+            try { engine.stop(100, 100) } catch (_: Exception) {}
         }
     }
 
-    /**
-     * Stops the current server instance and starts a new one on the specified port.
-     * Does nothing if the new port is the same as the current one.
-     *
-     * @param newPort The new port to run the server on.
-     */
     fun restartServer(newPort: Int) {
         if (newPort == currentPort) return
-        Log.i("HttpService", "Restarting server on port $newPort")
-        stop() // Use the new stop function
+        stop()
         currentPort = newPort
         start()
     }
 
-    /**
-     * Sends a new image frame to the MJPEG stream.
-     * It uses `trySend` to avoid blocking if the channel is full.
-     *
-     * @param bytes The ByteArray of the JPEG image frame.
-     */
     fun sendFrame(bytes: ByteArray) {
-        if (::imageChannel.isInitialized) {
-            imageChannel.trySend(bytes)
+        if (::imageChannel.isInitialized) imageChannel.trySend(bytes)
+    }
+
+    fun sendH264Frame(bytes: ByteArray, isKeyFrame: Boolean) {
+        for (client in h264Clients) {
+            if (client.needsKeyframe && !isKeyFrame) continue
+            val result = client.channel.trySend(H264Frame(bytes, isKeyFrame))
+            if (!result.isSuccess) {
+                while (client.channel.tryReceive().isSuccess) { }
+                client.needsKeyframe = true
+                if (isKeyFrame) {
+                    client.channel.trySend(H264Frame(bytes, true))
+                    client.needsKeyframe = false
+                }
+            } else {
+                client.needsKeyframe = false
+            }
         }
+    }
+
+    fun disconnectClients() {
+        for (client in h264Clients) {
+            client.channel.close()
+        }
+        h264Clients.clear()
     }
 }

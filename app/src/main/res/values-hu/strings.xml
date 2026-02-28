@@ -72,10 +72,10 @@
     <!-- Language -->
     <string name="settings_language">Nyelv</string>
     <string name="settings_lang_auto">Automatikus (rendszer)</string>
-    <string name="settings_lang_en">English</string>
-    <string name="settings_lang_fr">Français (French)</string>
+    <string name="settings_lang_en">English (Angol)</string>
+    <string name="settings_lang_fr">Français (Francia)</string>
     <string name="settings_lang_hu">Magyar</string>
-    <string name="settings_lang_pt_br">Portugál (Portuguese)</string>
+    <string name="settings_lang_pt_br">Português (Portugál)</string>
 
     <!-- ========================== -->
     <!-- SETTINGS - BEHAVIOR        -->
@@ -122,8 +122,10 @@
     <!-- Stream Format -->
     <string name="settings_format_title">Stream formátum</string>
     <string name="settings_format_desc">A HTTP stream formátuma</string>
-    <string name="settings_format_mjpeg">MJPEG (Képek)</string>
-    <string name="settings_format_h264">H.264 (Videó - Hatékony)</string>
+    <string name="settings_format_mjpeg">MJPEG</string>
+    <string name="settings_format_mjpeg_desc">Képek</string>
+    <string name="settings_format_h264">H.264</string>
+    <string name="settings_format_h264_desc">Videó - Hatékony</string>
 
     <!-- ========================== -->
     <!-- SETTINGS - CONTROLS        -->
@@ -218,5 +220,20 @@
     <string name="egg_title_alan">Egy kis üzenet a fejlesztőtől :p</string>
     <string name="egg_message_alan">Szia! Alan vagyok ^^\n\nVicces, hogy hétszer koppintottál ide!\n\nCsak köszönetet akartam mondani. Ez az app egy „fork", ami azt jelenti, hogy az eredeti fejlesztő fantasztikus alapját vettem, és rengeteg időt (napokat, estéket és hétvégéket...) töltöttem a saját fejlesztéseim hozzáadásával.\n\nNagyon remélem, hogy hasznosnak találod!\n\nKöszi, hogy használod!\n- Alan</string>
     <string name="egg_button_alan">Király! Üdv!</string>
+
+    <!-- ========================== -->
+    <!-- H.264 PARAMETERS           -->
+    <!-- ========================== -->
+    <string name="h264_bitrate">Bitráta (Mbps)</string>
+    <string name="h264_mode">Bitráta mód</string>
+    <string name="h264_mode_cbr">Állandó (CBR - Alacsony késleltetés)</string>
+    <string name="h264_mode_vbr">Változó (VBR - Minőség)</string>
+
+    <!-- ========================== -->
+    <!-- ERROR MESSAGES             -->
+    <!-- ========================== -->
+    <string name="error_port_title">Port nem elérhető</string>
+    <string name="error_port_message">A(z) %d port már használatban van egy másik alkalmazás által. Kérjük, válasszon másikat.</string>
+    <string name="btn_change_port">Port módosítása</string>
 
 </resources>

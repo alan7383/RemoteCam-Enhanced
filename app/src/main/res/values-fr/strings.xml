@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
 
     <!-- ========================== -->
@@ -121,8 +122,10 @@
     <!-- Stream Format -->
     <string name="settings_format_title">Format du flux</string>
     <string name="settings_format_desc">Format utilisé pour le flux HTTP</string>
-    <string name="settings_format_mjpeg">MJPEG (Images)</string>
-    <string name="settings_format_h264">H.264 (Vidéo - Efficace)</string>
+    <string name="settings_format_mjpeg">MJPEG</string>
+    <string name="settings_format_mjpeg_desc">Images</string>
+    <string name="settings_format_h264">H.264</string>
+    <string name="settings_format_h264_desc">Vidéo - Fluide</string>
 
     <!-- ========================== -->
     <!-- SETTINGS - CONTROLS        -->
@@ -217,5 +220,20 @@
     <string name="egg_title_alan">Une petite note du dev :p</string>
     <string name="egg_message_alan">Salut ! C\'est Alan ^^\n\nC\'est drôle que tu aies cliqué 7 fois ici !\n\nJe voulais juste te dire merci. Cette app est un \'fork\', ce qui veut dire que j\'ai repris la super base du développeur original et que j\'y ai passé un temps fou (des jours et des jours, soirs et week-ends...) pour l\'améliorer à ma façon.\n\nJ\'espère vraiment qu\'elle te sert !\n\nMerci de l\'utiliser !\n- Alan</string>
     <string name="egg_button_alan">Cool ! Salutations !</string>
+
+    <!-- ========================== -->
+    <!-- H.264 PARAMETERS           -->
+    <!-- ========================== -->
+    <string name="h264_bitrate">Débit (Mbps)</string>
+    <string name="h264_mode">Mode de débit</string>
+    <string name="h264_mode_cbr">Constant (CBR - Faible Latence)</string>
+    <string name="h264_mode_vbr">Variable (VBR - Qualité)</string>
+
+    <!-- ========================== -->
+    <!-- ERROR MESSAGES             -->
+    <!-- ========================== -->
+    <string name="error_port_title">Port indisponible</string>
+    <string name="error_port_message">Le port %d est déjà utilisé par une autre application. Veuillez en choisir un autre.</string>
+    <string name="btn_change_port">Changer de port</string>
 
 </resources>
